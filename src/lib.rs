@@ -87,12 +87,20 @@ impl Words {
 
     pub fn standard() -> Words {
         let mut words = Words::empty();
-        words.define("dup", Term::prim(prim::dup)); // : (A b → A b b)
-        words.define("pop", Term::prim(prim::pop)); // : (A b → A)
-        words.define("swap", Term::prim(prim::swap)); // : (A b c → A c b)
-        words.define("apply", Term::prim(prim::apply)); // : (A (A → B) → B)
-        words.define("quote", Term::prim(prim::quote)); // : (A b → A (C → C b))
-        words.define("compose", Term::prim(prim::compose)); // : (A (B → C) (C → D) → A (B → D)))
+
+        words.define("dup", Term::prim(prim::dup)); // (A b → A b b)
+        words.define("pop", Term::prim(prim::pop)); // (A b → A)
+        words.define("swap", Term::prim(prim::swap)); // (A b c → A c b)
+        words.define("apply", Term::prim(prim::apply)); // (A (A → B) → B)
+        words.define("quote", Term::prim(prim::quote)); // (A b → A (C → C b))
+        words.define("compose", Term::prim(prim::compose)); // (A (B → C) (C → D) → A (B → D)))
+
+        words.define("+", Term::prim(prim::add)); // (A num num → A num)
+        words.define("-", Term::prim(prim::sub)); // (A num num → A num)
+        words.define("*", Term::prim(prim::mul)); // (A num num → A num)
+        words.define("/", Term::prim(prim::div)); // (A num num → A num)
+        words.define("%", Term::prim(prim::rem)); // (A num num → A num)
+
         words
     }
 
@@ -126,6 +134,20 @@ impl Stack {
         }
     }
 
+    fn pop_number(&mut self) -> EvalResult<i32> {
+        match try!(self.pop()) {
+            Term::Number(x) => Ok(x),
+            _ => Err(EvalError::TypeMismatch),
+        }
+    }
+
+    fn pop_quote(&mut self) -> EvalResult<Stack> {
+        match try!(self.pop()) {
+            Term::Quote(stack) => Ok(stack),
+            _ => Err(EvalError::TypeMismatch),
+        }
+    }
+
     fn peek(&mut self) -> EvalResult<&Term> {
         match self.terms.last() {
             Some(term) => Ok(term),
@@ -155,6 +177,15 @@ impl Stack {
 
         self.push(term_a);
         self.push(term_b);
+
+        Ok(())
+    }
+
+    fn apply_binop<F: Fn(i32, i32) -> i32>(&mut self, f: F) -> EvalResult<()> {
+        let x = try!(self.pop_number());
+        let y = try!(self.pop_number());
+
+        self.push(Term::Number(f(x, y)));
 
         Ok(())
     }
@@ -271,6 +302,7 @@ impl<'a> Evaluator<'a> {
 }
 
 mod prim {
+    use std::ops::*;
     use super::*;
 
     // dup : (A b → A b b)
@@ -290,12 +322,9 @@ mod prim {
 
     // apply : (A (A → B) → B)
     pub fn apply(ev: &mut Evaluator) -> EvalResult<()> {
-        let term = try!(ev.stack.pop());
+        let quote = try!(ev.stack.pop_quote());
 
-        match term {
-            Term::Quote(quote) => ev.eval_quote(quote),
-            _ => Err(EvalError::TypeMismatch),
-        }
+        ev.eval_quote(quote)
     }
 
     // quote : (A b → A (C → C b))
@@ -310,15 +339,37 @@ mod prim {
 
     // compose : (A (B → C) (C → D) → A (B → D)))
     pub fn compose(ev: &mut Evaluator) -> EvalResult<()> {
-        let term_a = try!(ev.stack.pop());
-        let term_b = try!(ev.stack.pop());
+        let stack_a = try!(ev.stack.pop_quote());
+        let mut stack_b = try!(ev.stack.pop_quote());
 
-        match (term_b, term_a) {
-            (Term::Quote(mut term_b), Term::Quote(term_a)) => {
-                term_b.compose(term_a);
-                Ok(ev.stack.push(Term::Quote(term_b)))
-            },
-            (_, _) => Err(EvalError::TypeMismatch),
-        }
+        stack_b.compose(stack_a);
+        ev.stack.push(Term::Quote(stack_b));
+
+        Ok(())
+    }
+
+    // add : (A num num → A num)
+    pub fn add(ev: &mut Evaluator) -> EvalResult<()> {
+        ev.stack.apply_binop(i32::add)
+    }
+
+    // sub : (A num num → A num)
+    pub fn sub(ev: &mut Evaluator) -> EvalResult<()> {
+        ev.stack.apply_binop(i32::sub)
+    }
+
+    // mul : (A num num → A num)
+    pub fn mul(ev: &mut Evaluator) -> EvalResult<()> {
+        ev.stack.apply_binop(i32::mul)
+    }
+
+    // div : (A num num → A num)
+    pub fn div(ev: &mut Evaluator) -> EvalResult<()> {
+        ev.stack.apply_binop(i32::div)
+    }
+
+    // rem : (A num num → A num)
+    pub fn rem(ev: &mut Evaluator) -> EvalResult<()> {
+        ev.stack.apply_binop(i32::rem)
     }
 }
