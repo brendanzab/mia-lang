@@ -1,0 +1,17 @@
+[package]
+name = "mia"
+version = "0.1.0"
+authors = ["Brendan Zabarauskas <bjzaba@yahoo.com.au>"]
+license = "Apache-2.0"
+
+description = "A concatenative language."
+
+homepage = "https://github.com/bjz/mia-lang"
+repository = "https://github.com/bjz/mia-lang"
+readme = "README.md"
+
+keywords = ["mia", "language", "concatenative", "forth"]
+
+[dependencies]
+itertools = "0.4"
+linenoise-rust = "0.1.14"
