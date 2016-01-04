@@ -1,7 +1,7 @@
 extern crate linenoise;
 extern crate mia;
 
-use mia::{Evaluator, Words};
+use mia::Words;
 
 const HI_THERE: &'static str = r#"
 |\/|. _
@@ -25,7 +25,7 @@ fn main() {
 
         match input.parse() {
             Ok(stack) => {
-                match Evaluator::new(&words, stack).eval() {
+                match mia::eval(stack, &words) {
                     Ok(x) => println!("{}", x),
                     Err(x) => println!("error: {}", x),
                 }

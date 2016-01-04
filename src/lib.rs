@@ -31,12 +31,12 @@ pub type EvalResult<T> = Result<T, EvalError>;
 // This wrapper struct is needed to allow for the derivation of traits on `Term`
 #[derive(Copy)]
 pub struct Prim {
-    pub f: fn(&mut Evaluator) -> EvalResult<()>,
+    pub f: fn(&mut Stack, &Words) -> EvalResult<()>,
 }
 
 impl fmt::Debug for Prim {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "Prim(<prim>)")
+        write!(f, "<prim>")
     }
 }
 
@@ -59,7 +59,7 @@ pub enum Term {
 }
 
 impl Term {
-    pub fn prim(f: fn(&mut Evaluator) -> EvalResult<()>) -> Term {
+    pub fn prim(f: fn(&mut Stack, &Words) -> EvalResult<()>) -> Term {
         Term::Prim(Prim { f: f })
     }
 }
@@ -158,6 +158,36 @@ impl Stack {
             None => Err(EvalError::StackUnderflow),
         }
     }
+
+    fn eval_name(&mut self, words: &Words, name: String) -> EvalResult<()> {
+        match words.lookup(&name) {
+            Some(term) => self.eval_term(words, term.clone()),
+            None => Err(EvalError::NameNotFound(name)),
+        }
+    }
+
+    fn eval_term(&mut self, words: &Words, term: Term) -> EvalResult<()> {
+        match term {
+            Term::Number(x) => { self.push(Term::Number(x)); Ok(()) },
+            Term::Quote(stack) => { self.push(Term::Quote(stack)); Ok(()) },
+            Term::Name(name) => self.eval_name(words, name),
+            Term::Prim(prim) => (prim.f)(self, words),
+        }
+    }
+
+    fn apply(&mut self, words: &Words, quote: Stack) -> EvalResult<()> {
+        let mut quote = quote.into_iter();
+        while let Some(term) = quote.next() {
+            try!(self.eval_term(words, term))
+        }
+        Ok(())
+    }
+}
+
+pub fn eval(stack: Stack, words: &Words) -> EvalResult<Stack> {
+    let mut result = Stack::new(vec![]);
+    try!(result.apply(words, stack));
+    Ok(result)
 }
 
 impl FromStr for Stack {
@@ -214,59 +244,6 @@ impl IntoIterator for Stack {
 impl fmt::Display for Stack {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         write!(f, "{}", self.terms.iter().format(" ", |t, f| f(t)))
-    }
-}
-
-pub struct Evaluator<'a> {
-    words: &'a Words,
-    stack: Stack,
-    quote: Terms,
-}
-
-impl<'a> Evaluator<'a> {
-    pub fn new(words: &Words, quote: Stack) -> Evaluator {
-        Evaluator {
-            words: words,
-            stack: Stack::new(vec![]),
-            quote: quote.into_iter(),
-
-        }
-    }
-
-    fn eval_name(&mut self, name: String) -> EvalResult<()> {
-        match self.words.lookup(&name) {
-            Some(term) => self.eval_term(term.clone()),
-            None => Err(EvalError::NameNotFound(name)),
-        }
-    }
-
-    fn eval_term(&mut self, term: Term) -> EvalResult<()> {
-        match term {
-            Term::Number(x) => { self.stack.push(Term::Number(x)); Ok(()) },
-            Term::Quote(stack) => { self.stack.push(Term::Quote(stack)); Ok(()) },
-            Term::Name(name) => self.eval_name(name),
-            Term::Prim(prim) => (prim.f)(self),
-        }
-    }
-
-    fn eval_quote(&mut self, quote: Stack) -> EvalResult<()> {
-        let mut quote = quote.into_iter();
-        while let Some(term) = quote.next() {
-            try!(self.eval_term(term))
-        }
-        Ok(())
-    }
-
-    fn eval_stack(&mut self) -> EvalResult<()> {
-        while let Some(term) = self.quote.next() {
-            try!(self.eval_term(term))
-        }
-        Ok(())
-    }
-
-    pub fn eval(mut self) -> EvalResult<Stack> {
-        try!(self.eval_stack());
-        Ok(self.stack)
     }
 }
 
