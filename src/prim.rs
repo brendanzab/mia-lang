@@ -3,6 +3,15 @@
 use std::ops::*;
 use super::*;
 
+// words : (A ~> A)
+pub fn words(_: &mut Stack, words: &Words) -> EvalResult<()> {
+    for name in words.defs.keys() {
+        println!("{}", name);
+    }
+
+    Ok(())
+}
+
 // dup : (A b -> A b b)
 pub fn dup(stack: &mut Stack, _: &Words) -> EvalResult<()> {
     let term = try!(stack.peek()).clone();
@@ -54,18 +63,61 @@ pub fn compose(stack: &mut Stack, _: &Words) -> EvalResult<()> {
     Ok(())
 }
 
-// words : (A ~> A)
-pub fn words(_: &mut Stack, words: &Words) -> EvalResult<()> {
-    for name in words.defs.keys() {
-        println!("{}", name);
+// if : (A bool (A -> B) (A -> B) -> B)
+pub fn if_(stack: &mut Stack, words: &Words) -> EvalResult<()> {
+    let alt = try!(stack.pop_quote());
+    let conseq = try!(stack.pop_quote());
+    let pred = try!(stack.pop_bool());
+
+    if pred {
+        stack.apply(words, conseq)
+    } else {
+        stack.apply(words, alt)
     }
+}
+
+// eq : (A bool bool -> A bool)
+pub fn eq(stack: &mut Stack, _: &Words) -> EvalResult<()> {
+    let y = try!(stack.pop_number());
+    let x = try!(stack.pop_number());
+
+    stack.push(Term::Bool(x == y));
+
+    Ok(())
+}
+
+// and : (A bool bool -> A bool)
+pub fn and(stack: &mut Stack, _: &Words) -> EvalResult<()> {
+    let y = try!(stack.pop_bool());
+    let x = try!(stack.pop_bool());
+
+    stack.push(Term::Bool(x && y));
+
+    Ok(())
+}
+
+// or : (A bool bool -> A bool)
+pub fn or(stack: &mut Stack, _: &Words) -> EvalResult<()> {
+    let y = try!(stack.pop_bool());
+    let x = try!(stack.pop_bool());
+
+    stack.push(Term::Bool(x || y));
+
+    Ok(())
+}
+
+// not : (A bool -> A bool)
+pub fn not(stack: &mut Stack, _: &Words) -> EvalResult<()> {
+    let x = try!(stack.pop_bool());
+
+    stack.push(Term::Bool(!x));
 
     Ok(())
 }
 
 fn apply_binop<F: Fn(i32, i32) -> i32>(stack: &mut Stack, f: F) -> EvalResult<()> {
-    let x = try!(stack.pop_number());
     let y = try!(stack.pop_number());
+    let x = try!(stack.pop_number());
 
     stack.push(Term::Number(f(x, y)));
 

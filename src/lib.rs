@@ -52,6 +52,7 @@ impl PartialEq for Prim {
 
 #[derive(Clone, Debug, PartialEq)]
 pub enum Term {
+    Bool(bool),
     Number(i32),
     Quote(Stack),
     Name(String),
@@ -67,6 +68,8 @@ impl Term {
 impl fmt::Display for Term {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         match *self {
+            Term::Bool(true) => write!(f, "true"),
+            Term::Bool(false) => write!(f, "false"),
             Term::Number(x) => write!(f, "{}", x),
             Term::Quote(ref stack) => write!(f, "[ {} ]", stack),
             Term::Name(ref name) => write!(f, "{}", name),
@@ -90,6 +93,8 @@ impl Words {
     pub fn standard() -> Words {
         let mut words = Words::empty();
 
+        words.define("words", Term::prim(prim::words)); // (A ~> A)
+
         words.define("dup", Term::prim(prim::dup)); // (A b -> A b b)
         words.define("pop", Term::prim(prim::pop)); // (A b -> A)
         words.define("swap", Term::prim(prim::swap)); // (A b c -> A c b)
@@ -97,7 +102,15 @@ impl Words {
         words.define("quote", Term::prim(prim::quote)); // (A b -> A (C -> C b))
         words.define("compose", Term::prim(prim::compose)); // (A (B -> C) (C -> D) -> A (B -> D)))
 
-        words.define("words", Term::prim(prim::words)); // (A ~> A)
+        words.define("if", Term::prim(prim::if_)); // (A bool (A -> B) (A -> B) -> B)
+
+        words.define("true", Term::Bool(true)); // bool
+        words.define("false", Term::Bool(false)); // bool
+
+        words.define("eq", Term::prim(prim::eq)); // (A num num -> A bool)
+        words.define("and", Term::prim(prim::and)); // (A bool bool -> A bool)
+        words.define("or", Term::prim(prim::or)); // (A bool bool -> A bool)
+        words.define("not", Term::prim(prim::not)); // (A bool -> A bool)
 
         words.define("+", Term::prim(prim::add)); // (A num num -> A num)
         words.define("-", Term::prim(prim::sub)); // (A num num -> A num)
@@ -138,6 +151,13 @@ impl Stack {
         }
     }
 
+    fn pop_bool(&mut self) -> EvalResult<bool> {
+        match try!(self.pop()) {
+            Term::Bool(x) => Ok(x),
+            _ => Err(EvalError::TypeMismatch),
+        }
+    }
+
     fn pop_number(&mut self) -> EvalResult<i32> {
         match try!(self.pop()) {
             Term::Number(x) => Ok(x),
@@ -168,6 +188,7 @@ impl Stack {
 
     fn eval_term(&mut self, words: &Words, term: Term) -> EvalResult<()> {
         match term {
+            Term::Bool(x) => { self.push(Term::Bool(x)); Ok(()) },
             Term::Number(x) => { self.push(Term::Number(x)); Ok(()) },
             Term::Quote(stack) => { self.push(Term::Quote(stack)); Ok(()) },
             Term::Name(name) => self.eval_name(words, name),
