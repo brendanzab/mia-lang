@@ -366,3 +366,55 @@ mod prim {
         apply_binop(&mut ev.stack, i32::rem)
     }
 }
+
+#[cfg(test)]
+mod tests {
+    mod stack {
+        mod parse {
+            use Stack;
+            use Term::*;
+
+            #[test]
+            fn test_number() {
+                assert_eq!("123".parse(), Ok(Stack::new(vec![Number(123)])));
+                assert_eq!(" 34 ".parse(), Ok(Stack::new(vec![Number(34)])));
+            }
+
+            #[test]
+            fn test_name() {
+                assert_eq!("foo".parse(), Ok(Stack::new(vec![Name("foo".to_string())])));
+                assert_eq!(" * ".parse(), Ok(Stack::new(vec![Name("*".to_string())])));
+            }
+
+            #[test]
+            fn test_quote() {
+                assert_eq!("[ foo ]".parse(),
+                    Ok(Stack::new(vec![
+                        Quote(Stack::new(vec![Name("foo".to_string())]))
+                    ])));
+
+                assert_eq!("[ 1 2 * + ]".parse(),
+                    Ok(Stack::new(vec![
+                        Quote(Stack::new(vec![
+                            Number(1),
+                            Number(2),
+                            Name("*".to_string()),
+                            Name("+".to_string()),
+                        ])),
+                    ])));
+            }
+
+            #[test]
+            fn test_compose() {
+                assert_eq!(" 1 2 [ foo ]  * +".parse(),
+                    Ok(Stack::new(vec![
+                        Number(1),
+                        Number(2),
+                        Quote(Stack::new(vec![Name("foo".to_string())])),
+                        Name("*".to_string()),
+                        Name("+".to_string()),
+                    ])));
+            }
+        }
+    }
+}
