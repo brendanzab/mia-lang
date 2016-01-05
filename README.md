@@ -1,6 +1,6 @@
 # mia-lang
 
-A little concatenative language inspired by [Cat](https://web.archive.org/web/20150205160323/http://www.cat-language.com/).
+A little concatenative language.
 
 ```
 $ cargo run
@@ -19,6 +19,12 @@ mia> 2 [ dup dup ] [ * * ] compose apply
 8
 mia>
 ```
+
+## Inspiration
+
+- [Cat](https://web.archive.org/web/20150205160323/http://www.cat-language.com/)
+- [Kitten](http://kittenlang.org/)
+- [Why Concatenative Programming Matters](http://evincarofautumn.blogspot.sg/2012/02/why-concatenative-programming-matters.html)
 
 ## Todo
 
