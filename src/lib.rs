@@ -346,6 +346,20 @@ mod tests {
                         Call("*".to_string()),
                         Call("+".to_string()),
                     ])));
+                assert_eq!(" 1 2 [ foo [ -23 bar ] ]  * +".parse(),
+                    Ok(Stack::new(vec![
+                        Push(Number(1)),
+                        Push(Number(2)),
+                        Quote(Stack::new(vec![
+                            Call("foo".to_string()),
+                            Quote(Stack::new(vec![
+                                Push(Number(-23)),
+                                Call("bar".to_string())
+                            ]))
+                        ])),
+                        Call("*".to_string()),
+                        Call("+".to_string()),
+                    ])));
             }
         }
     }
