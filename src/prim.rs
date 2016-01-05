@@ -81,7 +81,7 @@ pub fn eq(stack: &mut Stack, _: &Words) -> EvalResult<()> {
     let y = try!(stack.pop_number());
     let x = try!(stack.pop_number());
 
-    stack.push(Term::Bool(x == y));
+    stack.push(Term::Push(Value::Bool(x == y)));
 
     Ok(())
 }
@@ -91,7 +91,7 @@ pub fn and(stack: &mut Stack, _: &Words) -> EvalResult<()> {
     let y = try!(stack.pop_bool());
     let x = try!(stack.pop_bool());
 
-    stack.push(Term::Bool(x && y));
+    stack.push(Term::Push(Value::Bool(x && y)));
 
     Ok(())
 }
@@ -101,7 +101,7 @@ pub fn or(stack: &mut Stack, _: &Words) -> EvalResult<()> {
     let y = try!(stack.pop_bool());
     let x = try!(stack.pop_bool());
 
-    stack.push(Term::Bool(x || y));
+    stack.push(Term::Push(Value::Bool(x || y)));
 
     Ok(())
 }
@@ -110,7 +110,7 @@ pub fn or(stack: &mut Stack, _: &Words) -> EvalResult<()> {
 pub fn not(stack: &mut Stack, _: &Words) -> EvalResult<()> {
     let x = try!(stack.pop_bool());
 
-    stack.push(Term::Bool(!x));
+    stack.push(Term::Push(Value::Bool(!x)));
 
     Ok(())
 }
@@ -119,7 +119,7 @@ fn apply_binop<F: Fn(i32, i32) -> i32>(stack: &mut Stack, f: F) -> EvalResult<()
     let y = try!(stack.pop_number());
     let x = try!(stack.pop_number());
 
-    stack.push(Term::Number(f(x, y)));
+    stack.push(Term::Push(Value::Number(f(x, y))));
 
     Ok(())
 }

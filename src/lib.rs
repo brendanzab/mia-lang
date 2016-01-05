@@ -12,7 +12,7 @@ mod prim;
 #[derive(Debug, Clone)]
 pub enum EvalError {
     StackUnderflow,
-    NameNotFound(String),
+    NotFound(String),
     TypeMismatch,
 }
 
@@ -20,13 +20,28 @@ impl fmt::Display for EvalError {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         match *self {
             EvalError::StackUnderflow => write!(f, "stack underflow"),
-            EvalError::NameNotFound(ref name) => write!(f, "could not find name: {}", name),
+            EvalError::NotFound(ref name) => write!(f, "could not find `{}`", name),
             EvalError::TypeMismatch => write!(f, "type mismatch"),
         }
     }
 }
 
 pub type EvalResult<T> = Result<T, EvalError>;
+
+#[derive(Copy, Clone, Debug, PartialEq)]
+pub enum Value {
+    Bool(bool),
+    Number(i32),
+}
+
+impl fmt::Display for Value {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        match *self {
+            Value::Bool(x) => write!(f, "{}", x),
+            Value::Number(x) => write!(f, "{}", x),
+        }
+    }
+}
 
 // The type `fn(&mut T, &mut V) -> V` does not implement `Debug`, `Clone`, or
 // `PartialEq`, so to enable `#[derive(..)]` to work for `Term`, we implement
@@ -52,10 +67,9 @@ impl PartialEq for Prim {
 
 #[derive(Clone, Debug, PartialEq)]
 pub enum Term {
-    Bool(bool),
-    Number(i32),
+    Push(Value),
     Quote(Stack),
-    Name(String),
+    Call(String),
     Prim(Prim),
 }
 
@@ -68,11 +82,9 @@ impl Term {
 impl fmt::Display for Term {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         match *self {
-            Term::Bool(true) => write!(f, "true"),
-            Term::Bool(false) => write!(f, "false"),
-            Term::Number(x) => write!(f, "{}", x),
+            Term::Push(value) => write!(f, "{}", value),
             Term::Quote(ref stack) => write!(f, "[ {} ]", stack),
-            Term::Name(ref name) => write!(f, "{}", name),
+            Term::Call(ref name) => write!(f, "{}", name),
             Term::Prim(_) => write!(f, "<prim>"),
         }
     }
@@ -104,8 +116,8 @@ impl Words {
 
         words.define("if", Term::prim(prim::if_)); // (A bool (A -> B) (A -> B) -> B)
 
-        words.define("true", Term::Bool(true)); // bool
-        words.define("false", Term::Bool(false)); // bool
+        words.define("true", Term::Push(Value::Bool(true))); // (A -> A bool)
+        words.define("false", Term::Push(Value::Bool(false))); // (A -> A bool)
 
         words.define("eq", Term::prim(prim::eq)); // (A num num -> A bool)
         words.define("and", Term::prim(prim::and)); // (A bool bool -> A bool)
@@ -153,14 +165,14 @@ impl Stack {
 
     fn pop_bool(&mut self) -> EvalResult<bool> {
         match try!(self.pop()) {
-            Term::Bool(x) => Ok(x),
+            Term::Push(Value::Bool(x)) => Ok(x),
             _ => Err(EvalError::TypeMismatch),
         }
     }
 
     fn pop_number(&mut self) -> EvalResult<i32> {
         match try!(self.pop()) {
-            Term::Number(x) => Ok(x),
+            Term::Push(Value::Number(x)) => Ok(x),
             _ => Err(EvalError::TypeMismatch),
         }
     }
@@ -182,16 +194,15 @@ impl Stack {
     fn eval_name(&mut self, words: &Words, name: String) -> EvalResult<()> {
         match words.lookup(&name) {
             Some(term) => self.eval_term(words, term.clone()),
-            None => Err(EvalError::NameNotFound(name)),
+            None => Err(EvalError::NotFound(name)),
         }
     }
 
     fn eval_term(&mut self, words: &Words, term: Term) -> EvalResult<()> {
         match term {
-            Term::Bool(x) => { self.push(Term::Bool(x)); Ok(()) },
-            Term::Number(x) => { self.push(Term::Number(x)); Ok(()) },
+            Term::Push(value) => { self.push(Term::Push(value)); Ok(()) },
             Term::Quote(stack) => { self.push(Term::Quote(stack)); Ok(()) },
-            Term::Name(name) => self.eval_name(words, name),
+            Term::Call(name) => self.eval_name(words, name),
             Term::Prim(Prim(f)) => f(self, words),
         }
     }
@@ -235,8 +246,8 @@ impl FromStr for Stack {
                         }
                     },
                     token => match token.parse() {
-                        Ok(x) => terms.push(Term::Number(x)),
-                        Err(_) => terms.push(Term::Name(token.to_string())),
+                        Ok(x) => terms.push(Term::Push(Value::Number(x))),
+                        Err(_) => terms.push(Term::Call(token.to_string())),
                     },
                 }
             }
@@ -293,33 +304,34 @@ mod tests {
         mod parse {
             use Stack;
             use Term::*;
+            use Value::*;
 
             #[test]
             fn test_number() {
-                assert_eq!("123".parse(), Ok(Stack::new(vec![Number(123)])));
-                assert_eq!(" 34 ".parse(), Ok(Stack::new(vec![Number(34)])));
+                assert_eq!("123".parse(), Ok(Stack::new(vec![Push(Number(123))])));
+                assert_eq!(" 34 ".parse(), Ok(Stack::new(vec![Push(Number(34))])));
             }
 
             #[test]
             fn test_name() {
-                assert_eq!("foo".parse(), Ok(Stack::new(vec![Name("foo".to_string())])));
-                assert_eq!(" * ".parse(), Ok(Stack::new(vec![Name("*".to_string())])));
+                assert_eq!("foo".parse(), Ok(Stack::new(vec![Call("foo".to_string())])));
+                assert_eq!(" * ".parse(), Ok(Stack::new(vec![Call("*".to_string())])));
             }
 
             #[test]
             fn test_quote() {
                 assert_eq!("[ foo ]".parse(),
                     Ok(Stack::new(vec![
-                        Quote(Stack::new(vec![Name("foo".to_string())]))
+                        Quote(Stack::new(vec![Call("foo".to_string())]))
                     ])));
 
                 assert_eq!("[ 1 2 * + ]".parse(),
                     Ok(Stack::new(vec![
                         Quote(Stack::new(vec![
-                            Number(1),
-                            Number(2),
-                            Name("*".to_string()),
-                            Name("+".to_string()),
+                            Push(Number(1)),
+                            Push(Number(2)),
+                            Call("*".to_string()),
+                            Call("+".to_string()),
                         ])),
                     ])));
             }
@@ -328,11 +340,11 @@ mod tests {
             fn test_compose() {
                 assert_eq!(" 1 2 [ foo ]  * +".parse(),
                     Ok(Stack::new(vec![
-                        Number(1),
-                        Number(2),
-                        Quote(Stack::new(vec![Name("foo".to_string())])),
-                        Name("*".to_string()),
-                        Name("+".to_string()),
+                        Push(Number(1)),
+                        Push(Number(2)),
+                        Quote(Stack::new(vec![Call("foo".to_string())])),
+                        Call("*".to_string()),
+                        Call("+".to_string()),
                     ])));
             }
         }
