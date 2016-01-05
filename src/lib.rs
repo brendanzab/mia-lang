@@ -28,25 +28,25 @@ impl fmt::Display for EvalError {
 
 pub type EvalResult<T> = Result<T, EvalError>;
 
-// This wrapper struct is needed to allow for the derivation of traits on `Term`
+// The type `fn(&mut T, &mut V) -> V` does not implement `Debug`, `Clone`, or
+// `PartialEq`, so to enable `#[derive(..)]` to work for `Term`, we implement
+// these for a wrapper struct.
 #[derive(Copy)]
-pub struct Prim {
-    pub f: fn(&mut Stack, &Words) -> EvalResult<()>,
-}
+pub struct Prim(pub fn(&mut Stack, &Words) -> EvalResult<()>);
 
 impl fmt::Debug for Prim {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "<prim>")
+        write!(f, "Prim(..)")
     }
 }
 
 impl Clone for Prim {
-    fn clone(&self) -> Prim { *self }
+    fn clone(&self) -> Prim { Prim(self.0) }
 }
 
 impl PartialEq for Prim {
-    fn eq(&self, _: &Prim) -> bool {
-        unimplemented!() // TODO: figure out function equality
+    fn eq(&self, other: &Prim) -> bool {
+        &self.0 as *const _ == &other.0 as *const _
     }
 }
 
@@ -61,7 +61,7 @@ pub enum Term {
 
 impl Term {
     pub fn prim(f: fn(&mut Stack, &Words) -> EvalResult<()>) -> Term {
-        Term::Prim(Prim { f: f })
+        Term::Prim(Prim(f))
     }
 }
 
@@ -192,7 +192,7 @@ impl Stack {
             Term::Number(x) => { self.push(Term::Number(x)); Ok(()) },
             Term::Quote(stack) => { self.push(Term::Quote(stack)); Ok(()) },
             Term::Name(name) => self.eval_name(words, name),
-            Term::Prim(prim) => (prim.f)(self, words),
+            Term::Prim(Prim(f)) => f(self, words),
         }
     }
 
@@ -270,6 +270,25 @@ impl fmt::Display for Stack {
 
 #[cfg(test)]
 mod tests {
+    mod prim {
+        mod eq {
+            use Prim;
+            use prim;
+
+            #[test]
+            fn test_same() {
+                assert_eq!(Prim(prim::eq), Prim(prim::eq));
+                assert_eq!(Prim(prim::add), Prim(prim::add));
+            }
+
+            #[test]
+            fn test_different() {
+                assert!(Prim(prim::eq) != Prim(prim::add));
+                assert!(Prim(prim::add) != Prim(prim::eq));
+            }
+        }
+    }
+
     mod stack {
         mod parse {
             use Stack;
