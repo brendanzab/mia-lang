@@ -5,7 +5,6 @@ use itertools::Itertools;
 use std::collections::HashMap;
 use std::fmt;
 use std::str::FromStr;
-use std::vec;
 
 mod prim;
 
@@ -208,8 +207,8 @@ impl Stack {
     }
 
     fn apply(&mut self, words: &Words, quote: Stack) -> EvalResult<()> {
-        let mut quote = quote.into_iter();
-        while let Some(term) = quote.next() {
+        let mut terms = quote.terms.into_iter();
+        while let Some(term) = terms.next() {
             try!(self.eval_term(words, term))
         }
         Ok(())
@@ -251,6 +250,7 @@ impl FromStr for Stack {
                     },
                 }
             }
+
             if in_quote {
                 Err("expected closing `]`".to_string())
             } else {
@@ -259,17 +259,6 @@ impl FromStr for Stack {
         }
 
         parse_tokens(&mut src.split_whitespace(), false)
-    }
-}
-
-pub type Terms = vec::IntoIter<Term>;
-
-impl IntoIterator for Stack {
-    type Item = Term;
-    type IntoIter = Terms;
-
-    fn into_iter(self) -> Terms {
-        self.terms.into_iter()
     }
 }
 
