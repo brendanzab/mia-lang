@@ -46,7 +46,9 @@ impl fmt::Display for Value {
 // `PartialEq`, so to enable `#[derive(..)]` to work for `Term`, we implement
 // these for a wrapper struct.
 #[derive(Copy)]
-pub struct Prim(pub fn(&mut Stack, &Words) -> EvalResult<()>);
+pub struct Prim {
+    f: fn(&mut Stack, &Words) -> EvalResult<()>,
+}
 
 impl fmt::Debug for Prim {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
@@ -55,12 +57,12 @@ impl fmt::Debug for Prim {
 }
 
 impl Clone for Prim {
-    fn clone(&self) -> Prim { Prim(self.0) }
+    fn clone(&self) -> Prim { Prim { f: self.f } }
 }
 
 impl PartialEq for Prim {
     fn eq(&self, other: &Prim) -> bool {
-        &self.0 as *const _ == &other.0 as *const _
+        &self.f as *const _ == &other.f as *const _
     }
 }
 
@@ -74,7 +76,7 @@ pub enum Term {
 
 impl Term {
     pub fn prim(f: fn(&mut Stack, &Words) -> EvalResult<()>) -> Term {
-        Term::Prim(Prim(f))
+        Term::Prim(Prim { f: f })
     }
 }
 
@@ -202,7 +204,7 @@ impl Stack {
             Term::Push(value) => { self.push(Term::Push(value)); Ok(()) },
             Term::Quote(stack) => { self.push(Term::Quote(stack)); Ok(()) },
             Term::Call(name) => self.eval_name(words, name),
-            Term::Prim(Prim(f)) => f(self, words),
+            Term::Prim(Prim { f }) => f(self, words),
         }
     }
 
