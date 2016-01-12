@@ -42,12 +42,14 @@ impl fmt::Display for Value {
     }
 }
 
-// The type `fn(&mut T, &mut V) -> V` does not implement `Debug`, `Clone`, or
+pub type PrimFn = fn(Stack, &Words) -> EvalResult<Stack>;
+
+// The type `fn(T, &U) -> V` does not implement `Debug`, `Clone`, or
 // `PartialEq`, so to enable `#[derive(..)]` to work for `Term`, we implement
 // these for a wrapper struct.
 #[derive(Copy)]
 pub struct Prim {
-    f: fn(&mut Stack, &Words) -> EvalResult<()>,
+    f: PrimFn,
 }
 
 impl fmt::Debug for Prim {
@@ -75,7 +77,7 @@ pub enum Term {
 }
 
 impl Term {
-    pub fn prim(f: fn(&mut Stack, &Words) -> EvalResult<()>) -> Term {
+    pub fn prim(f: PrimFn) -> Term {
         Term::Prim(Prim { f: f })
     }
 }
@@ -153,74 +155,80 @@ impl Stack {
         Stack { terms: terms }
     }
 
-    fn push(&mut self, term: Term) {
-        self.terms.push(term);
+    pub fn empty() -> Stack {
+        Stack::new(vec![])
     }
 
-    fn pop(&mut self) -> EvalResult<Term> {
+    fn push(mut self, term: Term) -> Stack {
+        self.terms.push(term);
+        self
+    }
+
+    fn pop(mut self) -> EvalResult<(Stack, Term)> {
         match self.terms.pop() {
-            Some(term) => Ok(term),
+            Some(term) => Ok((self, term)),
             None => Err(EvalError::StackUnderflow),
         }
     }
 
-    fn pop_bool(&mut self) -> EvalResult<bool> {
-        match try!(self.pop()) {
-            Term::Push(Value::Bool(x)) => Ok(x),
+    fn pop_bool(self) -> EvalResult<(Stack, bool)> {
+        let (stack, term) = try!(self.pop());
+        match term {
+            Term::Push(Value::Bool(x)) => Ok((stack, x)),
             _ => Err(EvalError::TypeMismatch),
         }
     }
 
-    fn pop_number(&mut self) -> EvalResult<i32> {
-        match try!(self.pop()) {
-            Term::Push(Value::Number(x)) => Ok(x),
+    fn pop_number(self) -> EvalResult<(Stack, i32)> {
+        let (stack, term) = try!(self.pop());
+        match term {
+            Term::Push(Value::Number(x)) => Ok((stack, x)),
             _ => Err(EvalError::TypeMismatch),
         }
     }
 
-    fn pop_quote(&mut self) -> EvalResult<Stack> {
-        match try!(self.pop()) {
-            Term::Quote(stack) => Ok(stack),
+    fn pop_quote(self) -> EvalResult<(Stack, Stack)> {
+        let (stack, term) = try!(self.pop());
+        match term {
+            Term::Quote(quoted) => Ok((stack, quoted)),
             _ => Err(EvalError::TypeMismatch),
         }
     }
 
-    fn peek(&mut self) -> EvalResult<&Term> {
+    fn peek(&self) -> EvalResult<&Term> {
         match self.terms.last() {
             Some(term) => Ok(term),
             None => Err(EvalError::StackUnderflow),
         }
     }
 
-    fn eval_name(&mut self, words: &Words, name: String) -> EvalResult<()> {
+    fn eval_name(self, words: &Words, name: String) -> EvalResult<Stack> {
         match words.lookup(&name) {
             Some(term) => self.eval_term(words, term.clone()),
             None => Err(EvalError::NotFound(name)),
         }
     }
 
-    fn eval_term(&mut self, words: &Words, term: Term) -> EvalResult<()> {
+    fn eval_term(self, words: &Words, term: Term) -> EvalResult<Stack> {
         match term {
-            Term::Push(value) => { self.push(Term::Push(value)); Ok(()) },
-            Term::Quote(stack) => { self.push(Term::Quote(stack)); Ok(()) },
+            Term::Push(value) => Ok(self.push(Term::Push(value))),
+            Term::Quote(stack) => Ok(self.push(Term::Quote(stack))),
             Term::Call(name) => self.eval_name(words, name),
             Term::Prim(Prim { f }) => f(self, words),
         }
     }
 
-    fn eval_stack(&mut self, words: &Words, quote: Stack) -> EvalResult<()> {
+    fn eval_stack(mut self, words: &Words, quote: Stack) -> EvalResult<Stack> {
         let mut terms = quote.terms.into_iter();
         while let Some(term) = terms.next() {
-            try!(self.eval_term(words, term))
+            self = try!(self.eval_term(words, term));
         }
-        Ok(())
+        Ok(self)
     }
 }
 
 pub fn eval(stack: Stack, words: &Words) -> EvalResult<Stack> {
-    let mut result = Stack::new(vec![]);
-    try!(result.eval_stack(words, stack));
-    Ok(result)
+    Stack::empty().eval_stack(words, stack)
 }
 
 impl FromStr for Stack {
