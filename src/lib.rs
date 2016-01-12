@@ -25,7 +25,7 @@ impl fmt::Display for EvalError {
     }
 }
 
-pub type EvalResult<T> = Result<T, EvalError>;
+pub type EvalResult = Result<Stack, EvalError>;
 
 #[derive(Copy, Clone, Debug, PartialEq)]
 pub enum Value {
@@ -42,7 +42,7 @@ impl fmt::Display for Value {
     }
 }
 
-pub type PrimFn = fn(Stack, &Words) -> EvalResult<Stack>;
+pub type PrimFn = fn(Stack, &Words) -> EvalResult;
 
 // The type `fn(T, &U) -> V` does not implement `Debug`, `Clone`, or
 // `PartialEq`, so to enable `#[derive(..)]` to work for `Term`, we implement
@@ -164,14 +164,14 @@ impl Stack {
         self
     }
 
-    fn pop(mut self) -> EvalResult<(Stack, Term)> {
+    fn pop(mut self) -> Result<(Stack, Term), EvalError> {
         match self.terms.pop() {
             Some(term) => Ok((self, term)),
             None => Err(EvalError::StackUnderflow),
         }
     }
 
-    fn pop_bool(self) -> EvalResult<(Stack, bool)> {
+    fn pop_bool(self) -> Result<(Stack, bool), EvalError> {
         let (stack, term) = try!(self.pop());
         match term {
             Term::Push(Value::Bool(x)) => Ok((stack, x)),
@@ -179,7 +179,7 @@ impl Stack {
         }
     }
 
-    fn pop_number(self) -> EvalResult<(Stack, i32)> {
+    fn pop_number(self) -> Result<(Stack, i32), EvalError> {
         let (stack, term) = try!(self.pop());
         match term {
             Term::Push(Value::Number(x)) => Ok((stack, x)),
@@ -187,7 +187,7 @@ impl Stack {
         }
     }
 
-    fn pop_quote(self) -> EvalResult<(Stack, Stack)> {
+    fn pop_quote(self) -> Result<(Stack, Stack), EvalError> {
         let (stack, term) = try!(self.pop());
         match term {
             Term::Quote(quoted) => Ok((stack, quoted)),
@@ -195,21 +195,21 @@ impl Stack {
         }
     }
 
-    fn peek(&self) -> EvalResult<&Term> {
+    fn peek(&self) -> Result<&Term, EvalError> {
         match self.terms.last() {
             Some(term) => Ok(term),
             None => Err(EvalError::StackUnderflow),
         }
     }
 
-    fn eval_name(self, words: &Words, name: String) -> EvalResult<Stack> {
+    fn eval_name(self, words: &Words, name: String) -> EvalResult {
         match words.lookup(&name) {
             Some(term) => self.eval_term(words, term.clone()),
             None => Err(EvalError::NotFound(name)),
         }
     }
 
-    fn eval_term(self, words: &Words, term: Term) -> EvalResult<Stack> {
+    fn eval_term(self, words: &Words, term: Term) -> EvalResult {
         match term {
             Term::Push(value) => Ok(self.push(Term::Push(value))),
             Term::Quote(stack) => Ok(self.push(Term::Quote(stack))),
@@ -218,7 +218,7 @@ impl Stack {
         }
     }
 
-    fn eval_stack(mut self, words: &Words, quote: Stack) -> EvalResult<Stack> {
+    fn eval_stack(mut self, words: &Words, quote: Stack) -> EvalResult {
         let mut terms = quote.terms.into_iter();
         while let Some(term) = terms.next() {
             self = try!(self.eval_term(words, term));
@@ -227,7 +227,7 @@ impl Stack {
     }
 }
 
-pub fn eval(stack: Stack, words: &Words) -> EvalResult<Stack> {
+pub fn eval(stack: Stack, words: &Words) -> EvalResult {
     Stack::empty().eval_stack(words, stack)
 }
 
