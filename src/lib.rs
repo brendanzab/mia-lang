@@ -208,7 +208,7 @@ impl Stack {
         }
     }
 
-    fn apply(&mut self, words: &Words, quote: Stack) -> EvalResult<()> {
+    fn eval_stack(&mut self, words: &Words, quote: Stack) -> EvalResult<()> {
         let mut terms = quote.terms.into_iter();
         while let Some(term) = terms.next() {
             try!(self.eval_term(words, term))
@@ -219,7 +219,7 @@ impl Stack {
 
 pub fn eval(stack: Stack, words: &Words) -> EvalResult<Stack> {
     let mut result = Stack::new(vec![]);
-    try!(result.apply(words, stack));
+    try!(result.eval_stack(words, stack));
     Ok(result)
 }
 

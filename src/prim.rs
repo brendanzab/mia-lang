@@ -39,7 +39,7 @@ pub fn swap(stack: &mut Stack, _: &Words) -> EvalResult<()> {
 pub fn apply(stack: &mut Stack, words: &Words) -> EvalResult<()> {
     let quote = try!(stack.pop_quote());
 
-    stack.apply(words, quote)
+    stack.eval_stack(words, quote)
 }
 
 // quote : (A b -> A (C -> C b))
@@ -69,11 +69,7 @@ pub fn if_(stack: &mut Stack, words: &Words) -> EvalResult<()> {
     let conseq = try!(stack.pop_quote());
     let pred = try!(stack.pop_bool());
 
-    if pred {
-        stack.apply(words, conseq)
-    } else {
-        stack.apply(words, alt)
-    }
+    stack.eval_stack(words, if pred { conseq } else { alt })
 }
 
 // eq : (A bool bool -> A bool)
