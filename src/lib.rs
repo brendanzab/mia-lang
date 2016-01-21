@@ -86,6 +86,7 @@ impl fmt::Display for Term {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         match *self {
             Term::Push(value) => write!(f, "{}", value),
+            Term::Quote(ref stack) if stack.terms.is_empty() => write!(f, "[ ]"),
             Term::Quote(ref stack) => write!(f, "[ {} ]", stack),
             Term::Call(ref name) => write!(f, "{}", name),
             Term::Prim(_) => write!(f, "<prim>"),
