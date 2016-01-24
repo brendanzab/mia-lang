@@ -203,18 +203,16 @@ impl Stack {
         }
     }
 
-    fn eval_name(self, words: &Words, name: String) -> EvalResult {
-        match words.lookup(&name) {
-            Some(term) => self.eval_term(words, term.clone()),
-            None => Err(EvalError::NotFound(name)),
-        }
-    }
-
     fn eval_term(self, words: &Words, term: Term) -> EvalResult {
         match term {
             Term::Push(value) => Ok(self.push(Term::Push(value))),
             Term::Quote(stack) => Ok(self.push(Term::Quote(stack))),
-            Term::Call(name) => self.eval_name(words, name),
+            Term::Call(name) => {
+                match words.lookup(&name) {
+                    Some(term) => self.eval_term(words, term.clone()),
+                    None => Err(EvalError::NotFound(name)),
+                }
+            },
             Term::Prim(Prim { f }) => f(self, words),
         }
     }
