@@ -4,11 +4,11 @@ use itertools::Itertools;
 
 use std::collections::HashMap;
 use std::fmt;
-use std::str::FromStr;
 
-mod prim;
 pub mod kind;
 pub mod kind_var;
+mod parse;
+mod prim;
 
 #[derive(Debug, Clone)]
 pub enum EvalError {
@@ -79,6 +79,10 @@ pub enum Term {
 }
 
 impl Term {
+    pub fn call<S: ToString>(name: S) -> Term {
+        Term::Call(name.to_string())
+    }
+
     pub fn prim(f: PrimFn) -> Term {
         Term::Prim(Prim { f: f })
     }
@@ -121,9 +125,6 @@ impl Words {
         words.define("compose", Term::prim(prim::compose)); // (A (B -> C) (C -> D) -> A (B -> D)))
 
         words.define("if", Term::prim(prim::if_)); // (A bool (A -> B) (A -> B) -> B)
-
-        words.define("true", Term::Push(Value::Bool(true))); // (A -> A bool)
-        words.define("false", Term::Push(Value::Bool(false))); // (A -> A bool)
 
         words.define("eq", Term::prim(prim::eq)); // (A num num -> A bool)
         words.define("and", Term::prim(prim::and)); // (A bool bool -> A bool)
@@ -232,47 +233,6 @@ pub fn eval(stack: Stack, words: &Words) -> EvalResult {
     Stack::empty().eval_stack(words, stack)
 }
 
-impl FromStr for Stack {
-    type Err = String;
-
-    fn from_str(src: &str) -> Result<Stack, String> {
-        fn parse_tokens<'a, I>(tokens: &mut I, in_quote: bool) -> Result<Stack, String> where
-            I: Iterator<Item = &'a str>,
-        {
-            let mut terms = vec![];
-
-            while let Some(token) = tokens.next() {
-                match token {
-                    "[" => {
-                        terms.push(Term::Quote(
-                            try!(parse_tokens(tokens, true))
-                        ))
-                    },
-                    "]" => {
-                        if in_quote {
-                            return Ok(Stack::new(terms));
-                        } else {
-                            return Err("found unexpected `]`".to_string());
-                        }
-                    },
-                    token => match token.parse() {
-                        Ok(x) => terms.push(Term::Push(Value::Number(x))),
-                        Err(_) => terms.push(Term::Call(token.to_string())),
-                    },
-                }
-            }
-
-            if in_quote {
-                Err("expected closing `]`".to_string())
-            } else {
-                Ok(Stack::new(terms))
-            }
-        }
-
-        parse_tokens(&mut src.split_whitespace(), false)
-    }
-}
-
 impl fmt::Display for Stack {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         write!(f, "{}", self.terms.iter().format(" ", |t, f| f(t)))
@@ -288,78 +248,14 @@ mod tests {
 
             #[test]
             fn test_same() {
-                assert_eq!(Prim(prim::eq), Prim(prim::eq));
-                assert_eq!(Prim(prim::add), Prim(prim::add));
+                assert_eq!(Prim { f: prim::eq }, Prim { f: prim::eq });
+                assert_eq!(Prim { f: prim::add }, Prim { f: prim::add });
             }
 
             #[test]
             fn test_different() {
-                assert!(Prim(prim::eq) != Prim(prim::add));
-                assert!(Prim(prim::add) != Prim(prim::eq));
-            }
-        }
-    }
-
-    mod stack {
-        mod parse {
-            use Stack;
-            use Term::*;
-            use Value::*;
-
-            #[test]
-            fn test_number() {
-                assert_eq!("123".parse(), Ok(Stack::new(vec![Push(Number(123))])));
-                assert_eq!(" 34 ".parse(), Ok(Stack::new(vec![Push(Number(34))])));
-            }
-
-            #[test]
-            fn test_name() {
-                assert_eq!("foo".parse(), Ok(Stack::new(vec![Call("foo".to_string())])));
-                assert_eq!(" * ".parse(), Ok(Stack::new(vec![Call("*".to_string())])));
-            }
-
-            #[test]
-            fn test_quote() {
-                assert_eq!("[ foo ]".parse(),
-                    Ok(Stack::new(vec![
-                        Quote(Stack::new(vec![Call("foo".to_string())]))
-                    ])));
-
-                assert_eq!("[ 1 2 * + ]".parse(),
-                    Ok(Stack::new(vec![
-                        Quote(Stack::new(vec![
-                            Push(Number(1)),
-                            Push(Number(2)),
-                            Call("*".to_string()),
-                            Call("+".to_string()),
-                        ])),
-                    ])));
-            }
-
-            #[test]
-            fn test_compose() {
-                assert_eq!(" 1 2 [ foo ]  * +".parse(),
-                    Ok(Stack::new(vec![
-                        Push(Number(1)),
-                        Push(Number(2)),
-                        Quote(Stack::new(vec![Call("foo".to_string())])),
-                        Call("*".to_string()),
-                        Call("+".to_string()),
-                    ])));
-                assert_eq!(" 1 2 [ foo [ -23 bar ] ]  * +".parse(),
-                    Ok(Stack::new(vec![
-                        Push(Number(1)),
-                        Push(Number(2)),
-                        Quote(Stack::new(vec![
-                            Call("foo".to_string()),
-                            Quote(Stack::new(vec![
-                                Push(Number(-23)),
-                                Call("bar".to_string())
-                            ]))
-                        ])),
-                        Call("*".to_string()),
-                        Call("+".to_string()),
-                    ])));
+                assert!(Prim { f: prim::eq } != Prim { f: prim::add });
+                assert!(Prim { f: prim::add } != Prim { f: prim::eq });
             }
         }
     }
