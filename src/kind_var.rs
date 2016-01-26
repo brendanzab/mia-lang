@@ -13,7 +13,7 @@ pub trait KindVar {
 }
 
 macro_rules! kind_var {
-    ($KindVar:ident, $Kind:ident, $prefix:expr) => {
+    ($KindVar:ident, $Kind:ident, $prefix:expr, $parse_var:ident) => {
         #[derive(Clone, Debug, Hash, PartialEq)]
         pub struct $KindVar {
             name: String,
@@ -47,27 +47,19 @@ macro_rules! kind_var {
                 write!(f, "{}", self.name)
             }
         }
+
+        impl FromStr for $KindVar {
+            type Err = grammar::ParseError;
+
+            fn from_str(src: &str) -> Result<$KindVar, grammar::ParseError> {
+                grammar::$parse_var(src)
+            }
+        }
     };
 }
 
-kind_var!(TypeVar, TypeKind, "t");
-kind_var!(StackVar, StackKind, "S");
-
-impl FromStr for TypeVar {
-    type Err = grammar::ParseError;
-
-    fn from_str(src: &str) -> Result<TypeVar, grammar::ParseError> {
-        grammar::type_var(src)
-    }
-}
-
-impl FromStr for StackVar {
-    type Err = grammar::ParseError;
-
-    fn from_str(src: &str) -> Result<StackVar, grammar::ParseError> {
-        grammar::stack_var(src)
-    }
-}
+kind_var!(TypeVar, TypeKind, "t", type_var);
+kind_var!(StackVar, StackKind, "S", stack_var);
 
 macro_rules! forall_fn {
     ($name:ident($($Var:ident),*)) => {
