@@ -21,20 +21,20 @@ word -> String
   = (!space .)+
   { match_str.to_string() }
 
-#[export]
+#[pub]
 value -> Value
   = "true" { Value::Bool(true) }
   / "false" { Value::Bool(false) }
   / n:word {? if let Ok(n) = n.parse() { Ok(Value::Number(n)) } else { Err("number") } }
 
-#[export]
+#[pub]
 term -> Term
   = "[" spaces "]" { Term::Quote(Stack::empty()) }
   / "[" spaces quoted:stack spaces "]" { Term::Quote(quoted) }
   / val:value { Term::Push(val) }
   / name:word { Term::Call(name) }
 
-#[export]
+#[pub]
 stack -> Stack
   = terms:((!end_quote term) ** spaces)
   { Stack::new(terms) }
@@ -52,24 +52,24 @@ stack_var_id -> String
   = [A-Z]*
   { match_str.to_string() }
 
-#[export]
+#[pub]
 type_var -> TypeVar
   = "'" id:type_var_id
   { TypeVar::new(id) }
 
-#[export]
+#[pub]
 stack_var -> StackVar
   = "'" id:stack_var_id
   { StackVar::new(id) }
 
-#[export]
+#[pub]
 type_kind -> TypeKind
   = "bool" { TypeKind::Bool }
   / "num" { TypeKind::Number }
   / var:type_var { TypeKind::Var(var) }
   / "(" spaces? lhs:stack_kind spaces? "->" spaces? rhs:stack_kind spaces? ")" { TypeKind::Fun(lhs, rhs) }
 
-#[export]
+#[pub]
 stack_kind -> StackKind
   = var:stack_var tys:(spaced_type*)
   { StackKind::new(var, tys) }
