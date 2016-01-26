@@ -8,6 +8,8 @@ use itertools::Itertools;
 use std::collections::HashMap;
 use std::fmt;
 
+use kind::TypeKind;
+
 pub mod kind;
 pub mod kind_var;
 mod parse;
@@ -50,14 +52,14 @@ impl fmt::Display for Value {
 pub type PrimDef = fn(Stack, &Words) -> EvalResult;
 
 pub struct Prim {
-    pub ty: String, // TODO: should be `TypeKind` once kind parsing is impled
+    pub ty: TypeKind,
     pub def: PrimDef,
 }
 
 impl Prim {
-    pub fn new<S: ToString>(ty: S, def: PrimDef) -> Prim {
+    pub fn new(ty: &str, def: PrimDef) -> Prim {
         Prim {
-            ty: ty.to_string(),
+            ty: ty.parse().unwrap(),
             def: def,
         }
     }

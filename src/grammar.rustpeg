@@ -1,4 +1,6 @@
 use super::super::{Term, Stack, Value};
+use kind::{TypeKind, StackKind};
+use kind_var::{KindVar, TypeVar, StackVar};
 
 eof = !.
 
@@ -38,3 +40,39 @@ stack -> Stack
   { Stack::new(terms) }
 
   end_quote = "]" (space / eof)
+
+
+// Kind Syntax
+
+type_var_id -> String
+  = [a-z]*
+  { match_str.to_string() }
+
+stack_var_id -> String
+  = [A-Z]*
+  { match_str.to_string() }
+
+#[export]
+type_var -> TypeVar
+  = "'" id:type_var_id
+  { TypeVar::new(id) }
+
+#[export]
+stack_var -> StackVar
+  = "'" id:stack_var_id
+  { StackVar::new(id) }
+
+#[export]
+type_kind -> TypeKind
+  = "bool" { TypeKind::Bool }
+  / "num" { TypeKind::Number }
+  / var:type_var { TypeKind::Var(var) }
+  / "(" spaces? lhs:stack_kind spaces? "->" spaces? rhs:stack_kind spaces? ")" { TypeKind::Fun(lhs, rhs) }
+
+#[export]
+stack_kind -> StackKind
+  = var:stack_var tys:(spaced_type*)
+  { StackKind::new(var, tys) }
+
+  spaced_type -> TypeKind
+    = spaces ty:type_kind { ty }

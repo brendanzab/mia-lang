@@ -15,8 +15,8 @@ pub enum TypeKind {
 impl fmt::Display for TypeKind {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         match *self {
-            TypeKind::Bool => write!(f, "Bool"),
-            TypeKind::Number => write!(f, "Number"),
+            TypeKind::Bool => write!(f, "bool"),
+            TypeKind::Number => write!(f, "num"),
             TypeKind::Var(ref var) => write!(f, "{}", var),
             TypeKind::Fun(ref a, ref b) => write!(f, "({} -> {})", a, b),
         }
@@ -24,10 +24,19 @@ impl fmt::Display for TypeKind {
 }
 
 #[derive(Clone, Debug, PartialEq)]
-pub struct StackKind(StackVar, Vec<TypeKind>);
+pub struct StackKind {
+    pub var: StackVar,
+    pub tys: Vec<TypeKind>,
+}
+
+impl StackKind {
+    pub fn new(var: StackVar, tys: Vec<TypeKind>) -> StackKind {
+        StackKind { var: var, tys: tys }
+    }
+}
 
 impl fmt::Display for StackKind {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "{} {}", self.0, self.1.iter().format(" ", |t, f| f(t)))
+        write!(f, "{} {}", self.var, self.tys.iter().format(" ", |t, f| f(t)))
     }
 }
