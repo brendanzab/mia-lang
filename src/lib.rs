@@ -11,7 +11,6 @@ use std::str::FromStr;
 use kind::TypeKind;
 
 pub mod kind;
-pub mod kind_var;
 pub mod prim;
 
 peg_file! grammar("grammar.rustpeg");

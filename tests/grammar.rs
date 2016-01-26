@@ -107,7 +107,7 @@ mod stack {
 }
 
 mod type_var {
-    use mia::kind_var::{KindVar, TypeVar};
+    use mia::kind::{KindVar, TypeVar};
 
     #[test]
     fn test_var() {
@@ -117,7 +117,7 @@ mod type_var {
 }
 
 mod stack_var {
-    use mia::kind_var::{KindVar, StackVar};
+    use mia::kind::{KindVar, StackVar};
 
     #[test]
     fn test_var() {
@@ -128,7 +128,7 @@ mod stack_var {
 
 mod type_kind {
     use mia::kind::{StackKind, TypeKind};
-    use mia::kind_var::{KindVar, StackVar, TypeVar};
+    use mia::kind::{KindVar, StackVar, TypeVar};
 
     #[test]
     fn test_bool() {
@@ -215,7 +215,7 @@ mod type_kind {
 
 mod stack_kind {
     use mia::kind::{StackKind, TypeKind};
-    use mia::kind_var::{KindVar, StackVar, TypeVar};
+    use mia::kind::{KindVar, StackVar, TypeVar};
 
     #[test]
     fn test_empty() {
