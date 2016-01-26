@@ -8,7 +8,7 @@ impl FromStr for Value {
     type Err = grammar::ParseError;
 
     fn from_str(src: &str) -> Result<Value, grammar::ParseError> {
-        grammar::value(src.trim())
+        grammar::value(src)
     }
 }
 
@@ -16,7 +16,7 @@ impl FromStr for Term {
     type Err = grammar::ParseError;
 
     fn from_str(src: &str) -> Result<Term, grammar::ParseError> {
-        grammar::term(src.trim())
+        grammar::term(src)
     }
 }
 
@@ -24,7 +24,7 @@ impl FromStr for Stack {
     type Err = grammar::ParseError;
 
     fn from_str(src: &str) -> Result<Stack, grammar::ParseError> {
-        grammar::stack(src.trim())
+        grammar::stack(src)
     }
 }
 
@@ -61,15 +61,15 @@ mod tests {
         #[test]
         fn test_push() {
             assert_eq!("123".parse(), Ok(Term::Push(Number(123))));
-            assert_eq!(" -34 ".parse(), Ok(Term::Push(Number(-34))));
+            assert_eq!("-34".parse(), Ok(Term::Push(Number(-34))));
             assert_eq!("true".parse(), Ok(Term::Push(Bool(true))));
-            assert_eq!(" false ".parse(), Ok(Term::Push(Bool(false))));
+            assert_eq!("false".parse(), Ok(Term::Push(Bool(false))));
         }
 
         #[test]
         fn test_call() {
             assert_eq!("foo".parse(), Ok(Term::call("foo")));
-            assert_eq!(" * ".parse(), Ok(Term::call("*")));
+            assert_eq!("*".parse(), Ok(Term::call("*")));
         }
 
         #[test]
@@ -112,7 +112,7 @@ mod tests {
 
         #[test]
         fn test_compose() {
-            assert_eq!(" 1 2 [ foo ]  * +".parse(),
+            assert_eq!("1 2 [ foo ]  * +".parse(),
                 Ok(Stack::new(vec![
                     Term::Push(Number(1)),
                     Term::Push(Number(2)),
@@ -120,7 +120,7 @@ mod tests {
                     Term::call("*"),
                     Term::call("+"),
                 ])));
-            assert_eq!(" 1 2 [ foo [ -23 bar ] ]  * +".parse(),
+            assert_eq!("1 2 [ foo [ -23 bar ] ]  * +".parse(),
                 Ok(Stack::new(vec![
                     Term::Push(Number(1)),
                     Term::Push(Number(2)),

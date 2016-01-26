@@ -23,7 +23,7 @@ fn main() {
     while let Some(input) = linenoise::input("mia> ") {
         linenoise::history_add(&input);
 
-        match input.parse() {
+        match input.trim().parse() {
             Ok(stack) => {
                 match mia::eval(stack, &words) {
                     Ok(x) => println!("{}", x),
