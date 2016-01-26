@@ -7,6 +7,7 @@ use std::fmt;
 use std::str::FromStr;
 
 mod prim;
+pub mod kind;
 
 #[derive(Debug, Clone)]
 pub enum EvalError {
