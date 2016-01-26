@@ -12,6 +12,10 @@ readme = "README.md"
 
 keywords = ["mia", "language", "concatenative", "forth"]
 
+[[bin]]
+name = "repl"
+doc = false
+
 [dependencies]
 itertools = "0.4"
 linenoise-rust = "0.1.14"
