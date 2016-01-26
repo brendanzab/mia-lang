@@ -1,5 +1,7 @@
 use std::fmt;
+use std::str::FromStr;
 
+use grammar;
 use kind::{TypeKind, StackKind};
 
 pub trait KindVar {
@@ -50,6 +52,22 @@ macro_rules! kind_var {
 
 kind_var!(TypeVar, TypeKind, "t");
 kind_var!(StackVar, StackKind, "S");
+
+impl FromStr for TypeVar {
+    type Err = grammar::ParseError;
+
+    fn from_str(src: &str) -> Result<TypeVar, grammar::ParseError> {
+        grammar::type_var(src)
+    }
+}
+
+impl FromStr for StackVar {
+    type Err = grammar::ParseError;
+
+    fn from_str(src: &str) -> Result<StackVar, grammar::ParseError> {
+        grammar::stack_var(src)
+    }
+}
 
 macro_rules! forall_fn {
     ($name:ident($($Var:ident),*)) => {

@@ -1,4 +1,4 @@
-use super::super::{Term, Stack, Value};
+use super::{Term, Stack, Value};
 use kind::{TypeKind, StackKind};
 use kind_var::{KindVar, TypeVar, StackVar};
 

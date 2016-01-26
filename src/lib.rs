@@ -4,16 +4,17 @@
 extern crate itertools;
 
 use itertools::Itertools;
-
 use std::collections::HashMap;
 use std::fmt;
+use std::str::FromStr;
 
 use kind::TypeKind;
 
 pub mod kind;
 pub mod kind_var;
-mod parse;
 pub mod prim;
+
+peg_file! grammar("grammar.rustpeg");
 
 #[derive(Debug, Clone)]
 pub enum EvalError {
@@ -38,6 +39,14 @@ pub type EvalResult = Result<Stack, EvalError>;
 pub enum Value {
     Bool(bool),
     Number(i32),
+}
+
+impl FromStr for Value {
+    type Err = grammar::ParseError;
+
+    fn from_str(src: &str) -> Result<Value, grammar::ParseError> {
+        grammar::value(src)
+    }
 }
 
 impl fmt::Display for Value {
@@ -100,6 +109,14 @@ impl Term {
 
     pub fn quote(terms: Vec<Term>) -> Term {
         Term::Quote(Stack::new(terms))
+    }
+}
+
+impl FromStr for Term {
+    type Err = grammar::ParseError;
+
+    fn from_str(src: &str) -> Result<Term, grammar::ParseError> {
+        grammar::term(src)
     }
 }
 
@@ -248,12 +265,19 @@ pub fn eval(stack: Stack, words: &Words) -> EvalResult {
     Stack::empty().eval_stack(words, stack)
 }
 
+impl FromStr for Stack {
+    type Err = grammar::ParseError;
+
+    fn from_str(src: &str) -> Result<Stack, grammar::ParseError> {
+        grammar::stack(src)
+    }
+}
+
 impl fmt::Display for Stack {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         write!(f, "{}", self.terms.iter().format(" ", |t, f| f(t)))
     }
 }
-
 
 #[cfg(test)]
 mod tests {

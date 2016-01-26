@@ -1,7 +1,8 @@
 use itertools::Itertools;
-
 use std::fmt;
+use std::str::FromStr;
 
+use grammar;
 use kind_var::{TypeVar, StackVar};
 
 #[derive(Clone, Debug, PartialEq)]
@@ -23,6 +24,14 @@ impl fmt::Display for TypeKind {
     }
 }
 
+impl FromStr for TypeKind {
+    type Err = grammar::ParseError;
+
+    fn from_str(src: &str) -> Result<TypeKind, grammar::ParseError> {
+        grammar::type_kind(src)
+    }
+}
+
 #[derive(Clone, Debug, PartialEq)]
 pub struct StackKind {
     pub var: StackVar,
@@ -38,5 +47,13 @@ impl StackKind {
 impl fmt::Display for StackKind {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         write!(f, "{} {}", self.var, self.tys.iter().format(" ", |t, f| f(t)))
+    }
+}
+
+impl FromStr for StackKind {
+    type Err = grammar::ParseError;
+
+    fn from_str(src: &str) -> Result<StackKind, grammar::ParseError> {
+        grammar::stack_kind(src)
     }
 }
