@@ -1,0 +1,44 @@
+use super::super::{Term, Stack, Value};
+
+eof = !.
+
+eol
+  = "\n"
+  / "\r\n"
+  / "\r"
+  / "\u{2028}"
+  / "\u{2029}"
+
+ws
+  = [ \t\u{00A0}\u{FEFF}\u{1680}\u{180E}\u{2000}-\u{200A}\u{202F}\u{205F}\u{3000}]
+
+space = ws / eol
+
+spaces = space+
+
+
+// Expression Syntax
+
+word -> String
+  = (!space .)+
+  { match_str.to_string() }
+
+#[export]
+value -> Value
+  = "true" { Value::Bool(true) }
+  / "false" { Value::Bool(false) }
+  / n:word {? if let Ok(n) = n.parse() { Ok(Value::Number(n)) } else { Err("number") } }
+
+#[export]
+term -> Term
+  = "[" spaces "]" { Term::Quote(Stack::empty()) }
+  / "[" spaces quoted:stack spaces "]" { Term::Quote(quoted) }
+  / val:value { Term::Push(val) }
+  / name:word { Term::Call(name) }
+
+#[export]
+stack -> Stack
+  = terms:((!end_quote term) ** spaces)
+  { Stack::new(terms) }
+
+  end_quote = "]" (space / eof)

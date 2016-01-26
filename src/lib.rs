@@ -1,3 +1,6 @@
+#![feature(plugin)]
+#![plugin(peg_syntax_ext)]
+
 extern crate itertools;
 
 use itertools::Itertools;
@@ -91,6 +94,10 @@ pub enum Term {
 impl Term {
     pub fn call<S: ToString>(name: S) -> Term {
         Term::Call(name.to_string())
+    }
+
+    pub fn quote(terms: Vec<Term>) -> Term {
+        Term::Quote(Stack::new(terms))
     }
 }
 
