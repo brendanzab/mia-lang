@@ -8,7 +8,7 @@ use std::fmt;
 pub mod kind;
 pub mod kind_var;
 mod parse;
-mod prim;
+pub mod prim;
 
 #[derive(Debug, Clone)]
 pub enum EvalError {
@@ -44,29 +44,39 @@ impl fmt::Display for Value {
     }
 }
 
-pub type PrimFn = fn(Stack, &Words) -> EvalResult;
+pub type PrimDef = fn(Stack, &Words) -> EvalResult;
 
-// The type `fn(T, &U) -> V` does not implement `Debug`, `Clone`, or
-// `PartialEq`, so to enable `#[derive(..)]` to work for `Term`, we implement
-// these for a wrapper struct.
-#[derive(Copy)]
 pub struct Prim {
-    f: PrimFn,
+    pub ty: String, // TODO: should be `TypeKind` once kind parsing is impled
+    pub def: PrimDef,
+}
+
+impl Prim {
+    pub fn new<S: ToString>(ty: S, def: PrimDef) -> Prim {
+        Prim {
+            ty: ty.to_string(),
+            def: def,
+        }
+    }
+
+    pub fn call(self, stack: Stack, words: &Words) -> EvalResult {
+        (self.def)(stack, words)
+    }
 }
 
 impl fmt::Debug for Prim {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "Prim(..)")
+        write!(f, "Prim({:#x})", self.def as usize)
     }
 }
 
 impl Clone for Prim {
-    fn clone(&self) -> Prim { Prim { f: self.f } }
+    fn clone(&self) -> Prim { Prim { ty: self.ty.clone(), def: self.def } }
 }
 
 impl PartialEq for Prim {
     fn eq(&self, other: &Prim) -> bool {
-        &self.f as *const _ == &other.f as *const _
+        self.def as usize == other.def as usize && self.ty == other.ty
     }
 }
 
@@ -81,10 +91,6 @@ pub enum Term {
 impl Term {
     pub fn call<S: ToString>(name: S) -> Term {
         Term::Call(name.to_string())
-    }
-
-    pub fn prim(f: PrimFn) -> Term {
-        Term::Prim(Prim { f: f })
     }
 }
 
@@ -112,30 +118,30 @@ impl Words {
         }
     }
 
-    pub fn standard() -> Words {
+    pub fn std() -> Words {
         let mut words = Words::empty();
 
-        words.define("words", Term::prim(prim::words)); // (A ~> A)
+        words.define("words", Term::Prim(prim::words()));
 
-        words.define("dup", Term::prim(prim::dup)); // (A b -> A b b)
-        words.define("pop", Term::prim(prim::pop)); // (A b -> A)
-        words.define("swap", Term::prim(prim::swap)); // (A b c -> A c b)
-        words.define("apply", Term::prim(prim::apply)); // (A (A -> B) -> B)
-        words.define("quote", Term::prim(prim::quote)); // (A b -> A (C -> C b))
-        words.define("compose", Term::prim(prim::compose)); // (A (B -> C) (C -> D) -> A (B -> D)))
+        words.define("dup", Term::Prim(prim::dup()));
+        words.define("pop", Term::Prim(prim::pop()));
+        words.define("swap", Term::Prim(prim::swap()));
+        words.define("apply", Term::Prim(prim::apply()));
+        words.define("quote", Term::Prim(prim::quote()));
+        words.define("compose", Term::Prim(prim::compose()));
 
-        words.define("if", Term::prim(prim::if_)); // (A bool (A -> B) (A -> B) -> B)
+        words.define("if", Term::Prim(prim::if_()));
 
-        words.define("eq", Term::prim(prim::eq)); // (A num num -> A bool)
-        words.define("and", Term::prim(prim::and)); // (A bool bool -> A bool)
-        words.define("or", Term::prim(prim::or)); // (A bool bool -> A bool)
-        words.define("not", Term::prim(prim::not)); // (A bool -> A bool)
+        words.define("eq", Term::Prim(prim::eq()));
+        words.define("and", Term::Prim(prim::and()));
+        words.define("or", Term::Prim(prim::or()));
+        words.define("not", Term::Prim(prim::not()));
 
-        words.define("+", Term::prim(prim::add)); // (A num num -> A num)
-        words.define("-", Term::prim(prim::sub)); // (A num num -> A num)
-        words.define("*", Term::prim(prim::mul)); // (A num num -> A num)
-        words.define("/", Term::prim(prim::div)); // (A num num -> A num)
-        words.define("%", Term::prim(prim::rem)); // (A num num -> A num)
+        words.define("+", Term::Prim(prim::add()));
+        words.define("-", Term::Prim(prim::sub()));
+        words.define("*", Term::Prim(prim::mul()));
+        words.define("/", Term::Prim(prim::div()));
+        words.define("%", Term::Prim(prim::rem()));
 
         words
     }
@@ -216,7 +222,7 @@ impl Stack {
                     None => Err(EvalError::NotFound(name)),
                 }
             },
-            Term::Prim(Prim { f }) => f(self, words),
+            Term::Prim(prim) => prim.call(self, words),
         }
     }
 
@@ -239,23 +245,23 @@ impl fmt::Display for Stack {
     }
 }
 
+
 #[cfg(test)]
 mod tests {
     mod prim {
         mod eq {
-            use Prim;
             use prim;
 
             #[test]
             fn test_same() {
-                assert_eq!(Prim { f: prim::eq }, Prim { f: prim::eq });
-                assert_eq!(Prim { f: prim::add }, Prim { f: prim::add });
+                assert_eq!(prim::eq(), prim::eq());
+                assert_eq!(prim::add(), prim::add());
             }
 
             #[test]
             fn test_different() {
-                assert!(Prim { f: prim::eq } != Prim { f: prim::add });
-                assert!(Prim { f: prim::add } != Prim { f: prim::eq });
+                assert!(prim::eq() != prim::add());
+                assert!(prim::add() != prim::eq());
             }
         }
     }

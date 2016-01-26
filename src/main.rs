@@ -14,7 +14,7 @@ const BYE_BYE: &'static str = r#"
 "#;
 
 fn main() {
-    let words = Words::standard();
+    let words = Words::std();
 
     println!("{}", HI_THERE);
 
