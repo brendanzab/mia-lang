@@ -1,31 +1,8 @@
 use itertools::Itertools;
 
 use std::fmt;
-use std::marker::PhantomData;
 
-#[derive(Clone, Debug, Hash, PartialEq)]
-pub struct Var<Kind>(String, PhantomData<Kind>);
-
-pub type TypeVar = Var<TypeKind>;
-pub type StackVar = Var<StackKind>;
-
-impl<Kind> Var<Kind> {
-    pub fn new<S: Into<String>>(name: S) -> Var<Kind> {
-        Var(name.into(), PhantomData)
-    }
-}
-
-impl fmt::Display for TypeVar {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "{}", self.0)
-    }
-}
-
-impl fmt::Display for StackVar {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "{}", self.0)
-    }
-}
+use kind_var::{TypeVar, StackVar};
 
 #[derive(Clone, Debug, PartialEq)]
 pub enum TypeKind {
