@@ -129,3 +129,20 @@ impl FromStr for StackKind {
         grammar::stack_kind(src)
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_kind_var_gen() {
+        assert_eq!(TypeVar::gen().to_string(), "t$0");
+        assert_eq!(StackVar::gen().to_string(), "S$0");
+
+        assert_eq!(TypeVar::gen().to_string(), "t$1");
+        assert_eq!(StackVar::gen().to_string(), "S$1");
+
+        assert_eq!(TypeVar::gen().to_string(), "t$2");
+        assert_eq!(StackVar::gen().to_string(), "S$2");
+    }
+}
