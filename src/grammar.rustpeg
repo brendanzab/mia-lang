@@ -1,6 +1,6 @@
-use super::{Term, Stack, Value};
-use kind::{TypeKind, StackKind};
-use kind::{KindVar, TypeVar, StackVar};
+use super::{Term, StackTerm, Value};
+use kind::{Ty, StackTy};
+use kind::{Var, StackVar};
 
 eof = !.
 
@@ -29,22 +29,22 @@ value -> Value
 
 #[pub]
 term -> Term
-  = "[" spaces "]" { Term::Quote(Stack::empty()) }
-  / "[" spaces quoted:stack spaces "]" { Term::Quote(quoted) }
+  = "[" spaces "]" { Term::Quote(StackTerm::empty()) }
+  / "[" spaces quoted:stack_term spaces "]" { Term::Quote(quoted) }
   / val:value { Term::Push(val) }
   / name:word { Term::Call(name) }
 
 #[pub]
-stack -> Stack
+stack_term -> StackTerm
   = terms:((!end_quote term) ** spaces)
-  { Stack::new(terms) }
+  { StackTerm::new(terms) }
 
   end_quote = "]" (space / eof)
 
 
 // Kind Syntax
 
-type_var_id -> String
+var_id -> String
   = [a-z]*
   { match_str.to_string() }
 
@@ -53,9 +53,9 @@ stack_var_id -> String
   { match_str.to_string() }
 
 #[pub]
-type_var -> TypeVar
-  = "'" id:type_var_id
-  { TypeVar::new(id) }
+var -> Var
+  = "'" id:var_id
+  { Var::new(id) }
 
 #[pub]
 stack_var -> StackVar
@@ -63,16 +63,16 @@ stack_var -> StackVar
   { StackVar::new(id) }
 
 #[pub]
-type_kind -> TypeKind
-  = "bool" { TypeKind::Bool }
-  / "num" { TypeKind::Number }
-  / var:type_var { TypeKind::Var(var) }
-  / "(" spaces? lhs:stack_kind spaces? "->" spaces? rhs:stack_kind spaces? ")" { TypeKind::Fun(lhs, rhs) }
+ty -> Ty
+  = "bool" { Ty::Bool }
+  / "num" { Ty::Number }
+  / var:var { Ty::Var(var) }
+  / "(" spaces? lhs:stack_ty spaces? "->" spaces? rhs:stack_ty spaces? ")" { Ty::Fun(lhs, rhs) }
 
 #[pub]
-stack_kind -> StackKind
+stack_ty -> StackTy
   = var:stack_var tys:(spaced_type*)
-  { StackKind::new(var, tys) }
+  { StackTy::new(var, tys) }
 
-  spaced_type -> TypeKind
-    = spaces ty:type_kind { ty }
+  spaced_type -> Ty
+    = spaces ty:ty { ty }

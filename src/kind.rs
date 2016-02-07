@@ -4,10 +4,8 @@ use std::str::FromStr;
 
 use grammar;
 
-pub trait KindVar {
+pub trait GenVar {
     type Kind;
-
-    fn new<S: ToString>(name: S) -> Self;
 
     fn gen() -> Self;
 }
@@ -19,14 +17,16 @@ macro_rules! kind_var {
             name: String,
         }
 
-        impl KindVar for $KindVar {
-            type Kind = $Kind;
-
-            fn new<S: ToString>(name: S) -> Self {
+        impl $KindVar {
+            pub fn new<S: ToString>(name: S) -> Self {
                 $KindVar {
                     name: name.to_string(),
                 }
             }
+        }
+
+        impl GenVar for $KindVar {
+            type Kind = $Kind;
 
             fn gen() -> $KindVar {
                 use std::cell::Cell;
@@ -58,13 +58,13 @@ macro_rules! kind_var {
     };
 }
 
-kind_var!(TypeVar, TypeKind, "t", type_var);
-kind_var!(StackVar, StackKind, "S", stack_var);
+kind_var!(Var, Ty, "t", var);
+kind_var!(StackVar, StackTy, "S", stack_var);
 
 macro_rules! forall_fn {
     ($name:ident($($Var:ident),*)) => {
         #[allow(dead_code)]
-        pub fn $name<F: FnOnce($($Var),*) -> Output, $($Var: KindVar,)* Output>(f: F) -> Output {
+        pub fn $name<F: FnOnce($($Var),*) -> Output, $($Var: GenVar,)* Output>(f: F) -> Output {
             f($($Var::gen()),*)
         }
     }
@@ -78,55 +78,55 @@ forall_fn!(forall5(Var1, Var2, Var3, Var4, Var5));
 
 
 #[derive(Clone, Debug, PartialEq)]
-pub enum TypeKind {
+pub enum Ty {
     Bool,
     Number,
-    Var(TypeVar),
-    Fun(StackKind, StackKind),
+    Var(Var),
+    Fun(StackTy, StackTy),
 }
 
-impl fmt::Display for TypeKind {
+impl fmt::Display for Ty {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         match *self {
-            TypeKind::Bool => write!(f, "bool"),
-            TypeKind::Number => write!(f, "num"),
-            TypeKind::Var(ref var) => write!(f, "{}", var),
-            TypeKind::Fun(ref a, ref b) => write!(f, "({} -> {})", a, b),
+            Ty::Bool => write!(f, "bool"),
+            Ty::Number => write!(f, "num"),
+            Ty::Var(ref var) => write!(f, "{}", var),
+            Ty::Fun(ref a, ref b) => write!(f, "({} -> {})", a, b),
         }
     }
 }
 
-impl FromStr for TypeKind {
+impl FromStr for Ty {
     type Err = grammar::ParseError;
 
-    fn from_str(src: &str) -> Result<TypeKind, grammar::ParseError> {
-        grammar::type_kind(src)
+    fn from_str(src: &str) -> Result<Ty, grammar::ParseError> {
+        grammar::ty(src)
     }
 }
 
 #[derive(Clone, Debug, PartialEq)]
-pub struct StackKind {
+pub struct StackTy {
     pub var: StackVar,
-    pub tys: Vec<TypeKind>,
+    pub tys: Vec<Ty>,
 }
 
-impl StackKind {
-    pub fn new(var: StackVar, tys: Vec<TypeKind>) -> StackKind {
-        StackKind { var: var, tys: tys }
+impl StackTy {
+    pub fn new(var: StackVar, tys: Vec<Ty>) -> StackTy {
+        StackTy { var: var, tys: tys }
     }
 }
 
-impl fmt::Display for StackKind {
+impl fmt::Display for StackTy {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         write!(f, "{} {}", self.var, self.tys.iter().format(" ", |t, f| f(t)))
     }
 }
 
-impl FromStr for StackKind {
+impl FromStr for StackTy {
     type Err = grammar::ParseError;
 
-    fn from_str(src: &str) -> Result<StackKind, grammar::ParseError> {
-        grammar::stack_kind(src)
+    fn from_str(src: &str) -> Result<StackTy, grammar::ParseError> {
+        grammar::stack_ty(src)
     }
 }
 
@@ -136,13 +136,13 @@ mod tests {
 
     #[test]
     fn test_kind_var_gen() {
-        assert_eq!(TypeVar::gen().to_string(), "t$0");
+        assert_eq!(Var::gen().to_string(), "t$0");
         assert_eq!(StackVar::gen().to_string(), "S$0");
 
-        assert_eq!(TypeVar::gen().to_string(), "t$1");
+        assert_eq!(Var::gen().to_string(), "t$1");
         assert_eq!(StackVar::gen().to_string(), "S$1");
 
-        assert_eq!(TypeVar::gen().to_string(), "t$2");
+        assert_eq!(Var::gen().to_string(), "t$2");
         assert_eq!(StackVar::gen().to_string(), "S$2");
     }
 }

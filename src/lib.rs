@@ -8,7 +8,7 @@ use std::collections::HashMap;
 use std::fmt;
 use std::str::FromStr;
 
-use kind::TypeKind;
+use kind::Ty;
 
 pub mod kind;
 pub mod prim;
@@ -32,7 +32,7 @@ impl fmt::Display for EvalError {
     }
 }
 
-pub type EvalResult = Result<Stack, EvalError>;
+pub type EvalResult = Result<StackTerm, EvalError>;
 
 #[derive(Copy, Clone, Debug, PartialEq)]
 pub enum Value {
@@ -57,10 +57,10 @@ impl fmt::Display for Value {
     }
 }
 
-pub type PrimDef = fn(Stack, &Words) -> EvalResult;
+pub type PrimDef = fn(StackTerm, &Words) -> EvalResult;
 
 pub struct Prim {
-    pub ty: TypeKind,
+    pub ty: Ty,
     pub def: PrimDef,
 }
 
@@ -72,8 +72,8 @@ impl Prim {
         }
     }
 
-    pub fn call(self, stack: Stack, words: &Words) -> EvalResult {
-        (self.def)(stack, words)
+    pub fn call(self, stack_term: StackTerm, words: &Words) -> EvalResult {
+        (self.def)(stack_term, words)
     }
 }
 
@@ -96,7 +96,7 @@ impl PartialEq for Prim {
 #[derive(Clone, Debug, PartialEq)]
 pub enum Term {
     Push(Value),
-    Quote(Stack),
+    Quote(StackTerm),
     Call(String),
     Prim(Prim),
 }
@@ -107,7 +107,7 @@ impl Term {
     }
 
     pub fn quote(terms: Vec<Term>) -> Term {
-        Term::Quote(Stack::new(terms))
+        Term::Quote(StackTerm::new(terms))
     }
 }
 
@@ -123,8 +123,8 @@ impl fmt::Display for Term {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         match *self {
             Term::Push(value) => write!(f, "{}", value),
-            Term::Quote(ref stack) if stack.terms.is_empty() => write!(f, "[ ]"),
-            Term::Quote(ref stack) => write!(f, "[ {} ]", stack),
+            Term::Quote(ref stack_term) if stack_term.terms.is_empty() => write!(f, "[ ]"),
+            Term::Quote(ref stack_term) => write!(f, "[ {} ]", stack_term),
             Term::Call(ref name) => write!(f, "{}", name),
             Term::Prim(_) => write!(f, "<prim>"),
         }
@@ -181,51 +181,51 @@ impl Words {
 }
 
 #[derive(Clone, Debug, PartialEq)]
-pub struct Stack {
+pub struct StackTerm {
     terms: Vec<Term>,
 }
 
-impl Stack {
-    pub fn new(terms: Vec<Term>) -> Stack {
-        Stack { terms: terms }
+impl StackTerm {
+    pub fn new(terms: Vec<Term>) -> StackTerm {
+        StackTerm { terms: terms }
     }
 
-    pub fn empty() -> Stack {
-        Stack::new(vec![])
+    pub fn empty() -> StackTerm {
+        StackTerm::new(vec![])
     }
 
-    fn push(mut self, term: Term) -> Stack {
+    fn push(mut self, term: Term) -> StackTerm {
         self.terms.push(term);
         self
     }
 
-    fn pop(mut self) -> Result<(Stack, Term), EvalError> {
+    fn pop(mut self) -> Result<(StackTerm, Term), EvalError> {
         match self.terms.pop() {
             Some(term) => Ok((self, term)),
             None => Err(EvalError::StackUnderflow),
         }
     }
 
-    fn pop_bool(self) -> Result<(Stack, bool), EvalError> {
-        let (stack, term) = try!(self.pop());
+    fn pop_bool(self) -> Result<(StackTerm, bool), EvalError> {
+        let (stack_term, term) = try!(self.pop());
         match term {
-            Term::Push(Value::Bool(x)) => Ok((stack, x)),
+            Term::Push(Value::Bool(x)) => Ok((stack_term, x)),
             _ => Err(EvalError::TypeMismatch),
         }
     }
 
-    fn pop_number(self) -> Result<(Stack, i32), EvalError> {
-        let (stack, term) = try!(self.pop());
+    fn pop_number(self) -> Result<(StackTerm, i32), EvalError> {
+        let (stack_term, term) = try!(self.pop());
         match term {
-            Term::Push(Value::Number(x)) => Ok((stack, x)),
+            Term::Push(Value::Number(x)) => Ok((stack_term, x)),
             _ => Err(EvalError::TypeMismatch),
         }
     }
 
-    fn pop_quote(self) -> Result<(Stack, Stack), EvalError> {
-        let (stack, term) = try!(self.pop());
+    fn pop_quote(self) -> Result<(StackTerm, StackTerm), EvalError> {
+        let (stack_term, term) = try!(self.pop());
         match term {
-            Term::Quote(quoted) => Ok((stack, quoted)),
+            Term::Quote(quoted) => Ok((stack_term, quoted)),
             _ => Err(EvalError::TypeMismatch),
         }
     }
@@ -240,7 +240,7 @@ impl Stack {
     fn eval_term(self, words: &Words, term: Term) -> EvalResult {
         match term {
             Term::Push(value) => Ok(self.push(Term::Push(value))),
-            Term::Quote(stack) => Ok(self.push(Term::Quote(stack))),
+            Term::Quote(stack_term) => Ok(self.push(Term::Quote(stack_term))),
             Term::Call(name) => {
                 match words.lookup(&name) {
                     Some(term) => self.eval_term(words, term.clone()),
@@ -251,7 +251,7 @@ impl Stack {
         }
     }
 
-    fn eval_stack(mut self, words: &Words, quote: Stack) -> EvalResult {
+    fn eval_stack(mut self, words: &Words, quote: StackTerm) -> EvalResult {
         let mut terms = quote.terms.into_iter();
         while let Some(term) = terms.next() {
             self = try!(self.eval_term(words, term));
@@ -260,19 +260,19 @@ impl Stack {
     }
 }
 
-pub fn eval(stack: Stack, words: &Words) -> EvalResult {
-    Stack::empty().eval_stack(words, stack)
+pub fn eval(stack_term: StackTerm, words: &Words) -> EvalResult {
+    StackTerm::empty().eval_stack(words, stack_term)
 }
 
-impl FromStr for Stack {
+impl FromStr for StackTerm {
     type Err = grammar::ParseError;
 
-    fn from_str(src: &str) -> Result<Stack, grammar::ParseError> {
-        grammar::stack(src)
+    fn from_str(src: &str) -> Result<StackTerm, grammar::ParseError> {
+        grammar::stack_term(src)
     }
 }
 
-impl fmt::Display for Stack {
+impl fmt::Display for StackTerm {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         write!(f, "{}", self.terms.iter().format(" ", |t, f| f(t)))
     }

@@ -24,8 +24,8 @@ fn main() {
         linenoise::history_add(&input);
 
         match input.trim().parse() {
-            Ok(stack) => {
-                match mia::eval(stack, &words) {
+            Ok(stack_term) => {
+                match mia::eval(stack_term, &words) {
                     Ok(x) => println!("{}", x),
                     Err(x) => println!("error: {}", x),
                 }

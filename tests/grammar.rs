@@ -23,7 +23,7 @@ mod value {
 }
 
 mod term {
-    use mia::{Stack, Term};
+    use mia::{StackTerm, Term};
     use mia::Term::*;
     use mia::Value::*;
 
@@ -60,12 +60,12 @@ mod term {
     fn test_quote() {
         assert_eq!(
             "[ foo ]".parse(),
-            Ok(Quote(Stack::new(vec![Term::call("foo")])))
+            Ok(Quote(StackTerm::new(vec![Term::call("foo")])))
         );
 
         assert_eq!(
             "[ 1 2 * + ]".parse(),
-            Ok(Quote(Stack::new(vec![
+            Ok(Quote(StackTerm::new(vec![
                 Term::Push(Number(1)),
                 Term::Push(Number(2)),
                 Term::call("*"),
@@ -76,13 +76,13 @@ mod term {
 }
 
 mod stack {
-    use mia::{Stack, Term};
+    use mia::{StackTerm, Term};
     use mia::Value::*;
 
     #[test]
     fn test_compose() {
         assert_eq!("1 2 [ foo ]  * +".parse(),
-            Ok(Stack::new(vec![
+            Ok(StackTerm::new(vec![
                 Term::Push(Number(1)),
                 Term::Push(Number(2)),
                 Term::quote(vec![Term::call("foo")]),
@@ -90,7 +90,7 @@ mod stack {
                 Term::call("+"),
             ])));
         assert_eq!("1 2 [ foo [ -23 bar ] ]  * +".parse(),
-            Ok(Stack::new(vec![
+            Ok(StackTerm::new(vec![
                 Term::Push(Number(1)),
                 Term::Push(Number(2)),
                 Term::quote(vec![
@@ -106,18 +106,18 @@ mod stack {
     }
 }
 
-mod type_var {
-    use mia::kind::{KindVar, TypeVar};
+mod var {
+    use mia::kind::Var;
 
     #[test]
     fn test_var() {
-        assert_eq!("'a".parse(), Ok(TypeVar::new("a")));
-        assert_eq!("'abc".parse(), Ok(TypeVar::new("abc")));
+        assert_eq!("'a".parse(), Ok(Var::new("a")));
+        assert_eq!("'abc".parse(), Ok(Var::new("abc")));
     }
 }
 
 mod stack_var {
-    use mia::kind::{KindVar, StackVar};
+    use mia::kind::StackVar;
 
     #[test]
     fn test_var() {
@@ -126,32 +126,32 @@ mod stack_var {
     }
 }
 
-mod type_kind {
-    use mia::kind::{StackKind, TypeKind};
-    use mia::kind::{KindVar, StackVar, TypeVar};
+mod ty {
+    use mia::kind::{StackTy, Ty};
+    use mia::kind::{StackVar, Var};
 
     #[test]
     fn test_bool() {
-        assert_eq!("bool".parse(), Ok(TypeKind::Bool));
+        assert_eq!("bool".parse(), Ok(Ty::Bool));
     }
 
     #[test]
     fn test_number() {
-        assert_eq!("num".parse(), Ok(TypeKind::Number));
+        assert_eq!("num".parse(), Ok(Ty::Number));
     }
 
     #[test]
     fn test_var() {
-        assert_eq!("'a".parse(), Ok(TypeKind::Var(TypeVar::new("a"))));
+        assert_eq!("'a".parse(), Ok(Ty::Var(Var::new("a"))));
     }
 
     #[test]
     fn test_fun_id() {
         assert_eq!(
             "('A -> 'A)".parse(),
-            Ok(TypeKind::Fun(
-                StackKind::new(StackVar::new("A"), vec![]),
-                StackKind::new(StackVar::new("A"), vec![]),
+            Ok(Ty::Fun(
+                StackTy::new(StackVar::new("A"), vec![]),
+                StackTy::new(StackVar::new("A"), vec![]),
             ))
         );
     }
@@ -160,9 +160,9 @@ mod type_kind {
     fn test_fun_with_bool() {
         assert_eq!(
             "('A bool -> 'A)".parse(),
-            Ok(TypeKind::Fun(
-                StackKind::new(StackVar::new("A"), vec![TypeKind::Bool]),
-                StackKind::new(StackVar::new("A"), vec![]),
+            Ok(Ty::Fun(
+                StackTy::new(StackVar::new("A"), vec![Ty::Bool]),
+                StackTy::new(StackVar::new("A"), vec![]),
             ))
         );
     }
@@ -171,19 +171,19 @@ mod type_kind {
     fn test_swap() {
         assert_eq!(
             "('A 'b 'c -> 'A 'c 'b)".parse(),
-            Ok(TypeKind::Fun(
-                StackKind::new(
+            Ok(Ty::Fun(
+                StackTy::new(
                     StackVar::new("A"),
                     vec![
-                        TypeKind::Var(TypeVar::new("b")),
-                        TypeKind::Var(TypeVar::new("c")),
+                        Ty::Var(Var::new("b")),
+                        Ty::Var(Var::new("c")),
                     ],
                 ),
-                StackKind::new(
+                StackTy::new(
                     StackVar::new("A"),
                     vec![
-                        TypeKind::Var(TypeVar::new("c")),
-                        TypeKind::Var(TypeVar::new("b")),
+                        Ty::Var(Var::new("c")),
+                        Ty::Var(Var::new("b")),
                     ],
                 ),
             ))
@@ -194,18 +194,18 @@ mod type_kind {
     fn test_fun_dup() {
         assert_eq!(
             "('A 'b -> 'A 'b 'b)".parse(),
-            Ok(TypeKind::Fun(
-                StackKind::new(
+            Ok(Ty::Fun(
+                StackTy::new(
                     StackVar::new("A"),
                     vec![
-                        TypeKind::Var(TypeVar::new("b")),
+                        Ty::Var(Var::new("b")),
                     ],
                 ),
-                StackKind::new(
+                StackTy::new(
                     StackVar::new("A"),
                     vec![
-                        TypeKind::Var(TypeVar::new("b")),
-                        TypeKind::Var(TypeVar::new("b")),
+                        Ty::Var(Var::new("b")),
+                        Ty::Var(Var::new("b")),
                     ],
                 ),
             ))
@@ -213,15 +213,15 @@ mod type_kind {
     }
 }
 
-mod stack_kind {
-    use mia::kind::{StackKind, TypeKind};
-    use mia::kind::{KindVar, StackVar, TypeVar};
+mod stack_ty {
+    use mia::kind::{StackTy, Ty};
+    use mia::kind::{StackVar, Var};
 
     #[test]
     fn test_empty() {
         assert_eq!(
             "'A".parse(),
-            Ok(StackKind::new(StackVar::new("A"), vec![]))
+            Ok(StackTy::new(StackVar::new("A"), vec![]))
         );
     }
 
@@ -229,22 +229,22 @@ mod stack_kind {
     fn test_nonempty() {
         assert_eq!(
             "'A bool 'a".parse(),
-            Ok(StackKind::new(
+            Ok(StackTy::new(
                 StackVar::new("A"),
                 vec![
-                    TypeKind::Bool,
-                    TypeKind::Var(TypeVar::new("a")),
+                    Ty::Bool,
+                    Ty::Var(Var::new("a")),
                 ],
             ))
         );
         assert_eq!(
             "'A ('B -> 'B)".parse(),
-            Ok(StackKind::new(
+            Ok(StackTy::new(
                 StackVar::new("A"),
                 vec![
-                    TypeKind::Fun(
-                        StackKind::new(StackVar::new("B"), vec![]),
-                        StackKind::new(StackVar::new("B"), vec![]),
+                    Ty::Fun(
+                        StackTy::new(StackVar::new("B"), vec![]),
+                        StackTy::new(StackVar::new("B"), vec![]),
                     ),
                 ],
             ))
