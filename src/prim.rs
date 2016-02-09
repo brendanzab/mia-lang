@@ -3,71 +3,71 @@
 use Prim;
 
 pub fn words() -> Prim {
-    Prim::new("('A -> 'A)", defs::words)
+    Prim::new("(A -> A)", defs::words)
 }
 
 pub fn dup() -> Prim {
-    Prim::new("('A 'b -> 'A 'b 'b)", defs::dup)
+    Prim::new("(A b -> A b b)", defs::dup)
 }
 
 pub fn pop() -> Prim {
-    Prim::new("('A 'b -> 'A)", defs::pop)
+    Prim::new("(A b -> A)", defs::pop)
 }
 
 pub fn swap() -> Prim {
-    Prim::new("('A 'b 'c -> 'A 'c 'b)", defs::swap)
+    Prim::new("(A b c -> A c b)", defs::swap)
 }
 
 pub fn apply() -> Prim {
-    Prim::new("('A ('A -> 'B) -> 'B)", defs::apply)
+    Prim::new("(A (A -> B) -> B)", defs::apply)
 }
 
 pub fn quote() -> Prim {
-    Prim::new("('A 'b -> 'A ('C -> 'C 'b))", defs::quote)
+    Prim::new("(A b -> A (C -> C b))", defs::quote)
 }
 
 pub fn compose() -> Prim {
-    Prim::new("('A ('B -> 'C) ('C -> 'D) -> 'A ('B -> 'D))", defs::compose)
+    Prim::new("(A (B -> C) (C -> D) -> A (B -> D))", defs::compose)
 }
 
 pub fn if_() -> Prim {
-    Prim::new("('A bool ('A -> 'B) ('A -> 'B) -> 'B)", defs::if_)
+    Prim::new("(A bool (A -> B) (A -> B) -> B)", defs::if_)
 }
 
 pub fn eq() -> Prim {
-    Prim::new("('A bool bool -> 'A bool)", defs::eq)
+    Prim::new("(A bool bool -> A bool)", defs::eq)
 }
 
 pub fn and() -> Prim {
-    Prim::new("('A bool bool -> 'A bool)", defs::and)
+    Prim::new("(A bool bool -> A bool)", defs::and)
 }
 
 pub fn or() -> Prim {
-    Prim::new("('A bool bool -> 'A bool)", defs::or)
+    Prim::new("(A bool bool -> A bool)", defs::or)
 }
 
 pub fn not() -> Prim {
-    Prim::new("('A bool -> 'A bool)", defs::not)
+    Prim::new("(A bool -> A bool)", defs::not)
 }
 
 pub fn add() -> Prim {
-    Prim::new("('A num num -> 'A num)", defs::add)
+    Prim::new("(A num num -> A num)", defs::add)
 }
 
 pub fn sub() -> Prim {
-    Prim::new("('A num num -> 'A num)", defs::sub)
+    Prim::new("(A num num -> A num)", defs::sub)
 }
 
 pub fn mul() -> Prim {
-    Prim::new("('A num num -> 'A num)", defs::mul)
+    Prim::new("(A num num -> A num)", defs::mul)
 }
 
 pub fn div() -> Prim {
-    Prim::new("('A num num -> 'A num)", defs::div)
+    Prim::new("(A num num -> A num)", defs::div)
 }
 
 pub fn rem() -> Prim {
-    Prim::new("('A num num -> 'A num)", defs::rem)
+    Prim::new("(A num num -> A num)", defs::rem)
 }
 
 mod defs {

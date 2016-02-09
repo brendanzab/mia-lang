@@ -111,8 +111,8 @@ mod var {
 
     #[test]
     fn test_var() {
-        assert_eq!("'a".parse(), Ok(Var::new("a")));
-        assert_eq!("'abc".parse(), Ok(Var::new("abc")));
+        assert_eq!("a".parse(), Ok(Var::new("a")));
+        assert_eq!("abc".parse(), Ok(Var::new("abc")));
     }
 }
 
@@ -121,8 +121,8 @@ mod stack_var {
 
     #[test]
     fn test_var() {
-        assert_eq!("'A".parse(), Ok(StackVar::new("A")));
-        assert_eq!("'ABC".parse(), Ok(StackVar::new("ABC")));
+        assert_eq!("A".parse(), Ok(StackVar::new("A")));
+        assert_eq!("ABC".parse(), Ok(StackVar::new("ABC")));
     }
 }
 
@@ -142,13 +142,13 @@ mod ty {
 
     #[test]
     fn test_var() {
-        assert_eq!("'a".parse(), Ok(Ty::Var(Var::new("a"))));
+        assert_eq!("a".parse(), Ok(Ty::Var(Var::new("a"))));
     }
 
     #[test]
     fn test_fun_id() {
         assert_eq!(
-            "('A -> 'A)".parse(),
+            "(A -> A)".parse(),
             Ok(Ty::Fun(
                 StackTy::new(StackVar::new("A"), vec![]),
                 StackTy::new(StackVar::new("A"), vec![]),
@@ -159,7 +159,7 @@ mod ty {
     #[test]
     fn test_fun_with_bool() {
         assert_eq!(
-            "('A bool -> 'A)".parse(),
+            "(A bool -> A)".parse(),
             Ok(Ty::Fun(
                 StackTy::new(StackVar::new("A"), vec![Ty::Bool]),
                 StackTy::new(StackVar::new("A"), vec![]),
@@ -170,7 +170,7 @@ mod ty {
     #[test]
     fn test_swap() {
         assert_eq!(
-            "('A 'b 'c -> 'A 'c 'b)".parse(),
+            "(A b c -> A c b)".parse(),
             Ok(Ty::Fun(
                 StackTy::new(
                     StackVar::new("A"),
@@ -193,7 +193,7 @@ mod ty {
     #[test]
     fn test_fun_dup() {
         assert_eq!(
-            "('A 'b -> 'A 'b 'b)".parse(),
+            "(A b -> A b b)".parse(),
             Ok(Ty::Fun(
                 StackTy::new(
                     StackVar::new("A"),
@@ -220,7 +220,7 @@ mod stack_ty {
     #[test]
     fn test_empty() {
         assert_eq!(
-            "'A".parse(),
+            "A".parse(),
             Ok(StackTy::new(StackVar::new("A"), vec![]))
         );
     }
@@ -228,7 +228,7 @@ mod stack_ty {
     #[test]
     fn test_nonempty() {
         assert_eq!(
-            "'A bool 'a".parse(),
+            "A bool a".parse(),
             Ok(StackTy::new(
                 StackVar::new("A"),
                 vec![
@@ -238,7 +238,7 @@ mod stack_ty {
             ))
         );
         assert_eq!(
-            "'A ('B -> 'B)".parse(),
+            "A (B -> B)".parse(),
             Ok(StackTy::new(
                 StackVar::new("A"),
                 vec![

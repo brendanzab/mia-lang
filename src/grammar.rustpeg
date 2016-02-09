@@ -44,23 +44,13 @@ stack_term -> StackTerm
 
 // Kind Syntax
 
-var_id -> String
-  = [a-z]*
-  { match_str.to_string() }
-
-stack_var_id -> String
-  = [A-Z]*
-  { match_str.to_string() }
-
 #[pub]
 var -> Var
-  = "'" id:var_id
-  { Var::new(id) }
+  = [a-z]+ { Var::new(match_str) }
 
 #[pub]
 stack_var -> StackVar
-  = "'" id:stack_var_id
-  { StackVar::new(id) }
+  = [A-Z]+ { StackVar::new(match_str) }
 
 #[pub]
 ty -> Ty
