@@ -18,26 +18,24 @@ spaces = space+
 // Expression Syntax
 
 word -> String
-  = (!space .)+
-  { match_str.to_string() }
+  = (!space .)+ { match_str.to_string() }
 
 #[pub]
 value -> Value
-  = "true" { Value::Bool(true) }
+  = "[" spaces "]" { Value::Quote(StackTerm::empty()) }
+  / "[" spaces quoted:stack_term spaces "]" { Value::Quote(quoted) }
+  / "true" { Value::Bool(true) }
   / "false" { Value::Bool(false) }
   / n:word {? if let Ok(n) = n.parse() { Ok(Value::Number(n)) } else { Err("number") } }
 
 #[pub]
 term -> Term
-  = "[" spaces "]" { Term::Quote(StackTerm::empty()) }
-  / "[" spaces quoted:stack_term spaces "]" { Term::Quote(quoted) }
-  / val:value { Term::Push(val) }
+  = val:value { Term::Push(val) }
   / name:word { Term::Call(name) }
 
 #[pub]
 stack_term -> StackTerm
-  = terms:((!end_quote term) ** spaces)
-  { StackTerm::new(terms) }
+  = terms:((!end_quote term) ** spaces) { StackTerm::new(terms) }
 
   end_quote = "]" (space / eof)
 
@@ -61,8 +59,7 @@ ty -> Ty
 
 #[pub]
 stack_ty -> StackTy
-  = var:stack_var tys:(spaced_type*)
-  { StackTy::new(var, tys) }
+  = var:stack_var tys:(spaced_type*) { StackTy::new(var, tys) }
 
   spaced_type -> Ty
     = spaces ty:ty { ty }

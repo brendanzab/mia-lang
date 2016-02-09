@@ -24,15 +24,14 @@ mod value {
 
 mod term {
     use mia::{StackTerm, Term};
-    use mia::Term::*;
     use mia::Value::*;
 
     #[test]
     fn test_push() {
-        assert_eq!("123".parse(), Ok(Term::Push(Number(123))));
-        assert_eq!("-34".parse(), Ok(Term::Push(Number(-34))));
-        assert_eq!("true".parse(), Ok(Term::Push(Bool(true))));
-        assert_eq!("false".parse(), Ok(Term::Push(Bool(false))));
+        assert_eq!("123".parse(), Ok(Term::number(123)));
+        assert_eq!("-34".parse(), Ok(Term::number(-34)));
+        assert_eq!("true".parse(), Ok(Term::bool(true)));
+        assert_eq!("false".parse(), Ok(Term::bool(false)));
     }
 
     #[test]
@@ -66,8 +65,8 @@ mod term {
         assert_eq!(
             "[ 1 2 * + ]".parse(),
             Ok(Quote(StackTerm::new(vec![
-                Term::Push(Number(1)),
-                Term::Push(Number(2)),
+                Term::number(1),
+                Term::number(2),
                 Term::call("*"),
                 Term::call("+"),
             ])))
@@ -77,26 +76,25 @@ mod term {
 
 mod stack {
     use mia::{StackTerm, Term};
-    use mia::Value::*;
 
     #[test]
     fn test_compose() {
         assert_eq!("1 2 [ foo ]  * +".parse(),
             Ok(StackTerm::new(vec![
-                Term::Push(Number(1)),
-                Term::Push(Number(2)),
+                Term::number(1),
+                Term::number(2),
                 Term::quote(vec![Term::call("foo")]),
                 Term::call("*"),
                 Term::call("+"),
             ])));
         assert_eq!("1 2 [ foo [ -23 bar ] ]  * +".parse(),
             Ok(StackTerm::new(vec![
-                Term::Push(Number(1)),
-                Term::Push(Number(2)),
+                Term::number(1),
+                Term::number(2),
                 Term::quote(vec![
                     Term::call("foo"),
                     Term::quote(vec![
-                        Term::Push(Number(-23)),
+                        Term::number(-23),
                         Term::call("bar")
                     ])
                 ]),

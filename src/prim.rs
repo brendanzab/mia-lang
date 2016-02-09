@@ -107,9 +107,9 @@ mod defs {
 
     pub fn quote(stack_term: StackTerm, _: &Words) -> EvalResult {
         let (stack_term, term) = try!(stack_term.pop());
-        let quoted = Term::Quote(StackTerm::new(vec![term]));
+        let quoted = StackTerm::new(vec![term]);
 
-        Ok(stack_term.push(quoted))
+        Ok(stack_term.push(Term::Push(Value::Quote(quoted))))
     }
 
     pub fn compose(stack_term: StackTerm, _: &Words) -> EvalResult {
@@ -118,7 +118,7 @@ mod defs {
 
         stack_b.terms.extend(stack_a.terms);
 
-        Ok(stack_term.push(Term::Quote(stack_b)))
+        Ok(stack_term.push(Term::Push(Value::Quote(stack_b))))
     }
 
     pub fn if_(stack_term: StackTerm, words: &Words) -> EvalResult {
@@ -133,34 +133,34 @@ mod defs {
         let (stack_term, y) = try!(stack_term.pop_number());
         let (stack_term, x) = try!(stack_term.pop_number());
 
-        Ok(stack_term.push(Term::Push(Value::Bool(x == y))))
+        Ok(stack_term.push(Term::bool(x == y)))
     }
 
     pub fn and(stack_term: StackTerm, _: &Words) -> EvalResult {
         let (stack_term, y) = try!(stack_term.pop_bool());
         let (stack_term, x) = try!(stack_term.pop_bool());
 
-        Ok(stack_term.push(Term::Push(Value::Bool(x && y))))
+        Ok(stack_term.push(Term::bool(x && y)))
     }
 
     pub fn or(stack_term: StackTerm, _: &Words) -> EvalResult {
         let (stack_term, y) = try!(stack_term.pop_bool());
         let (stack_term, x) = try!(stack_term.pop_bool());
 
-        Ok(stack_term.push(Term::Push(Value::Bool(x || y))))
+        Ok(stack_term.push(Term::bool(x || y)))
     }
 
     pub fn not(stack_term: StackTerm, _: &Words) -> EvalResult {
         let (stack_term, x) = try!(stack_term.pop_bool());
 
-        Ok(stack_term.push(Term::Push(Value::Bool(!x))))
+        Ok(stack_term.push(Term::bool(!x)))
     }
 
     fn apply_binop<F: Fn(i32, i32) -> i32>(stack_term: StackTerm, f: F) -> EvalResult {
         let (stack_term, y) = try!(stack_term.pop_number());
         let (stack_term, x) = try!(stack_term.pop_number());
 
-        Ok(stack_term.push(Term::Push(Value::Number(f(x, y)))))
+        Ok(stack_term.push(Term::number(f(x, y))))
     }
 
     pub fn add(stack_term: StackTerm, _: &Words) -> EvalResult {

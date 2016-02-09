@@ -34,10 +34,11 @@ impl fmt::Display for EvalError {
 
 pub type EvalResult = Result<StackTerm, EvalError>;
 
-#[derive(Copy, Clone, Debug, PartialEq)]
+#[derive(Clone, Debug, PartialEq)]
 pub enum Value {
     Bool(bool),
     Number(i32),
+    Quote(StackTerm),
 }
 
 impl FromStr for Value {
@@ -53,6 +54,8 @@ impl fmt::Display for Value {
         match *self {
             Value::Bool(x) => write!(f, "{}", x),
             Value::Number(x) => write!(f, "{}", x),
+            Value::Quote(ref stack) if stack.terms.is_empty() => write!(f, "[ ]"),
+            Value::Quote(ref stack) => write!(f, "[ {} ]", stack),
         }
     }
 }
@@ -96,7 +99,6 @@ impl PartialEq for Prim {
 #[derive(Clone, Debug, PartialEq)]
 pub enum Term {
     Push(Value),
-    Quote(StackTerm),
     Call(String),
     Prim(Prim),
 }
@@ -106,8 +108,16 @@ impl Term {
         Term::Call(name.to_string())
     }
 
+    pub fn bool(x: bool) -> Term {
+        Term::Push(Value::Bool(x))
+    }
+
+    pub fn number(x: i32) -> Term {
+        Term::Push(Value::Number(x))
+    }
+
     pub fn quote(terms: Vec<Term>) -> Term {
-        Term::Quote(StackTerm::new(terms))
+        Term::Push(Value::Quote(StackTerm::new(terms)))
     }
 }
 
@@ -122,9 +132,7 @@ impl FromStr for Term {
 impl fmt::Display for Term {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         match *self {
-            Term::Push(value) => write!(f, "{}", value),
-            Term::Quote(ref stack_term) if stack_term.terms.is_empty() => write!(f, "[ ]"),
-            Term::Quote(ref stack_term) => write!(f, "[ {} ]", stack_term),
+            Term::Push(ref value) => write!(f, "{}", value),
             Term::Call(ref name) => write!(f, "{}", name),
             Term::Prim(_) => write!(f, "<prim>"),
         }
@@ -225,7 +233,7 @@ impl StackTerm {
     fn pop_quote(self) -> Result<(StackTerm, StackTerm), EvalError> {
         let (stack_term, term) = try!(self.pop());
         match term {
-            Term::Quote(quoted) => Ok((stack_term, quoted)),
+            Term::Push(Value::Quote(quoted)) => Ok((stack_term, quoted)),
             _ => Err(EvalError::TypeMismatch),
         }
     }
@@ -240,7 +248,6 @@ impl StackTerm {
     fn eval_term(self, words: &Words, term: Term) -> EvalResult {
         match term {
             Term::Push(value) => Ok(self.push(Term::Push(value))),
-            Term::Quote(stack_term) => Ok(self.push(Term::Quote(stack_term))),
             Term::Call(name) => {
                 match words.lookup(&name) {
                     Some(term) => self.eval_term(words, term.clone()),
