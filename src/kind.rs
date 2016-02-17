@@ -76,13 +76,35 @@ forall_fn!(forall3(Var1, Var2, Var3));
 forall_fn!(forall4(Var1, Var2, Var3, Var4));
 forall_fn!(forall5(Var1, Var2, Var3, Var4, Var5));
 
+#[derive(Clone, Debug, PartialEq)]
+pub struct Fun(pub StackTy, pub StackTy);
+
+impl fmt::Display for Fun {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f, "{} -> {}", self.0, self.1)
+    }
+}
+
+impl FromStr for Fun {
+    type Err = grammar::ParseError;
+
+    fn from_str(src: &str) -> Result<Fun, grammar::ParseError> {
+        grammar::fun(src)
+    }
+}
 
 #[derive(Clone, Debug, PartialEq)]
 pub enum Ty {
     Bool,
     Number,
     Var(Var),
-    Fun(StackTy, StackTy),
+    Fun(Fun),
+}
+
+impl Ty {
+    pub fn fun(lhs: StackTy, rhs: StackTy) -> Ty {
+        Ty::Fun(Fun(lhs, rhs))
+    }
 }
 
 impl fmt::Display for Ty {
@@ -91,7 +113,7 @@ impl fmt::Display for Ty {
             Ty::Bool => write!(f, "bool"),
             Ty::Number => write!(f, "num"),
             Ty::Var(ref var) => write!(f, "{}", var),
-            Ty::Fun(ref a, ref b) => write!(f, "({} -> {})", a, b),
+            Ty::Fun(ref fun) => write!(f, "({})", fun),
         }
     }
 }

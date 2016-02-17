@@ -147,7 +147,7 @@ mod ty {
     fn test_fun_id() {
         assert_eq!(
             "(A -> A)".parse(),
-            Ok(Ty::Fun(
+            Ok(Ty::fun(
                 StackTy::new(StackVar::new("A"), vec![]),
                 StackTy::new(StackVar::new("A"), vec![]),
             ))
@@ -158,7 +158,7 @@ mod ty {
     fn test_fun_with_bool() {
         assert_eq!(
             "(A bool -> A)".parse(),
-            Ok(Ty::Fun(
+            Ok(Ty::fun(
                 StackTy::new(StackVar::new("A"), vec![Ty::Bool]),
                 StackTy::new(StackVar::new("A"), vec![]),
             ))
@@ -169,7 +169,7 @@ mod ty {
     fn test_swap() {
         assert_eq!(
             "(A b c -> A c b)".parse(),
-            Ok(Ty::Fun(
+            Ok(Ty::fun(
                 StackTy::new(
                     StackVar::new("A"),
                     vec![
@@ -192,7 +192,7 @@ mod ty {
     fn test_fun_dup() {
         assert_eq!(
             "(A b -> A b b)".parse(),
-            Ok(Ty::Fun(
+            Ok(Ty::fun(
                 StackTy::new(
                     StackVar::new("A"),
                     vec![
@@ -240,7 +240,7 @@ mod stack_ty {
             Ok(StackTy::new(
                 StackVar::new("A"),
                 vec![
-                    Ty::Fun(
+                    Ty::fun(
                         StackTy::new(StackVar::new("B"), vec![]),
                         StackTy::new(StackVar::new("B"), vec![]),
                     ),

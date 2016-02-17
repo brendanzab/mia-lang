@@ -1,5 +1,5 @@
 use super::{Term, StackTerm, Value};
-use kind::{Ty, StackTy};
+use kind::{Ty, Fun, StackTy};
 use kind::{Var, StackVar};
 
 eof = !.
@@ -51,15 +51,19 @@ stack_var -> StackVar
   = [A-Z]+ { StackVar::new(match_str) }
 
 #[pub]
+fun -> Fun
+  = lhs:stack_ty spaces? "->" spaces? rhs:stack_ty { Fun(lhs, rhs) }
+
+#[pub]
 ty -> Ty
   = "bool" { Ty::Bool }
   / "num" { Ty::Number }
-  / var:var { Ty::Var(var) }
-  / "(" spaces? lhs:stack_ty spaces? "->" spaces? rhs:stack_ty spaces? ")" { Ty::Fun(lhs, rhs) }
+  / v:var { Ty::Var(v) }
+  / "(" spaces? f:fun spaces? ")" { Ty::Fun(f) }
 
 #[pub]
 stack_ty -> StackTy
-  = var:stack_var tys:(spaced_type*) { StackTy::new(var, tys) }
+  = sv:stack_var tys:(spaced_type*) { StackTy::new(sv, tys) }
 
   spaced_type -> Ty
     = spaces ty:ty { ty }
